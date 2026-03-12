@@ -56,6 +56,22 @@ export type {
 // Platform Visibility Estimates
 export { estimatePlatformVisibility } from './platform-visibility';
 
+// Phase 4 Analyzers — LLM-powered Deep Scan
+export { analyzeHallucinationRisk } from './analyzers/phase4/hallucination-risk';
+export type { HallucinationRiskResult } from './analyzers/phase4/hallucination-risk';
+export { analyzeInformationGain } from './analyzers/phase4/information-gain';
+export type { InformationGainResult } from './analyzers/phase4/information-gain';
+export { analyzeTopicalDepth } from './analyzers/phase4/topical-depth';
+export type { TopicalDepthResult } from './analyzers/phase4/topical-depth';
+export { analyzeConversationalAlignment } from './analyzers/phase4/conversational-alignment';
+export type { ConversationalAlignmentResult } from './analyzers/phase4/conversational-alignment';
+
+// Citation Monitoring
+export { parseCrawlerLogs } from './citation-monitor/log-parser';
+export type { CrawlerLogReport } from './citation-monitor/log-parser';
+export { checkScoreAlerts, DEFAULT_ALERT_CONFIG } from './citation-monitor/score-alerts';
+export type { ScoreAlert, AlertConfig } from './citation-monitor/score-alerts';
+
 // Crawl utilities
 export { discoverPages } from './crawl/discover';
 export { computeSiteScore } from './crawl/site-score';

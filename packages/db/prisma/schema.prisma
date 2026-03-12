@@ -77,6 +77,7 @@ model Organization {
   members   OrgMember[]
   projects  Project[]
   apiKeys   ApiKey[]
+  webhooks  Webhook[]
 
   @@map("organizations")
 }
@@ -193,10 +194,49 @@ model ApiKey {
   organizationId String    @map("organization_id")
   keyHash        String    @unique @map("key_hash")
   label          String
+  rateLimit      Int       @default(100) @map("rate_limit") // Requests per minute
+  scopes         String[]  @default(["scan:read", "scan:write"]) // Permission scopes
   lastUsedAt     DateTime? @map("last_used_at")
   createdAt      DateTime  @default(now()) @map("created_at")
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@map("api_keys")
+}
+
+// ──────────────────────────────────────
+// Webhooks & Alerts (Phase 4)
+// ──────────────────────────────────────
+
+model Webhook {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  url            String
+  events         String[] // scan.complete, score.changed, crawl.complete, credits.low
+  secret         String   // HMAC signing secret
+  active         Boolean  @default(true)
+  failureCount   Int      @default(0) @map("failure_count")
+  lastTriggeredAt DateTime? @map("last_triggered_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("webhooks")
+}
+
+model Alert {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  projectId      String?  @map("project_id")
+  type           String   // score_drop, score_improvement, tier_change, factor_regression, credits_low
+  severity       String   // critical, warning, info
+  title          String
+  message        String   @db.Text
+  url            String?
+  metadata       Json     @default("{}")
+  readAt         DateTime? @map("read_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([organizationId, readAt, createdAt])
+  @@map("alerts")
 }
