@@ -15,6 +15,10 @@ import { analyzeFeeds } from './analyzers/feeds';
 import { analyzeEntities } from './analyzers/entities';
 import { analyzeCrawlAccess } from './analyzers/crawl-access';
 import { analyzeContentRichness } from './analyzers/content-richness';
+import { analyzeSchemaAccuracy } from './analyzers/phase2/schema-accuracy';
+import { analyzeAuthorEeat } from './analyzers/phase2/author-eeat';
+import { analyzeContentQuality } from './analyzers/phase2/content-quality';
+import { analyzeBotBlocking } from './analyzers/phase2/bot-blocking';
 import { generateFixes } from './fixes';
 import { generateCitationSimulation } from './citation-sim';
 import { createHash } from 'crypto';
@@ -24,13 +28,21 @@ import { createHash } from 'crypto';
  * Configurable so they can evolve as new factors are added.
  */
 export const SCORING_WEIGHTS = {
-  schema: 0.20,
-  entity: 0.15,
-  speakable: 0.10,
-  structure: 0.15,
-  faq: 0.15,
-  summary: 0.15,
-  feed: 0.10,
+  // Phase 1 (rebalanced for 55-factor coverage)
+  schema: 0.12,
+  entity: 0.08,
+  speakable: 0.05,
+  structure: 0.10,
+  faq: 0.08,
+  summary: 0.08,
+  feed: 0.05,
+  crawlAccess: 0.08,
+  contentRichness: 0.06,
+  // Phase 2
+  botBlocking: 0.08,
+  schemaAccuracy: 0.06,
+  authorEeat: 0.10,
+  contentQuality: 0.06,
 } as const;
 
 const FETCH_TIMEOUT = 15_000;
@@ -118,7 +130,7 @@ export async function scanUrl(
     // robots.txt not available
   }
 
-  // 5. Run all analyzers
+  // 5. Run all analyzers (Phase 1 + Phase 2)
   const schemaResult = analyzeSchema($);
   const structureResult = analyzeStructure($);
   const faqResult = analyzeFaq($);
@@ -127,6 +139,22 @@ export async function scanUrl(
   const entityResult = analyzeEntities($);
   const crawlAccessResult = analyzeCrawlAccess($, normalizedUrl, robotsTxt, ttfbMs);
   const contentRichnessResult = analyzeContentRichness($, normalizedUrl);
+
+  // Phase 2 analyzers (synchronous)
+  const schemaAccuracyResult = analyzeSchemaAccuracy($);
+  const authorEeatResult = analyzeAuthorEeat($, normalizedUrl);
+  const contentQualityResult = analyzeContentQuality($);
+
+  // Phase 2 async: bot blocking (optional — network-dependent)
+  let botBlockingScore = 100; // Default to 100 if skipped
+  if (options?.deepScan !== false) {
+    try {
+      const botBlockingResult = await analyzeBotBlocking(normalizedUrl);
+      botBlockingScore = botBlockingResult.score;
+    } catch {
+      // Bot blocking test failed — skip gracefully
+    }
+  }
 
   // 6. Build sub-scores
   const subScores: SubScores = {
@@ -139,32 +167,42 @@ export async function scanUrl(
     feed: feedResult.score,
     crawlAccess: crawlAccessResult.score,
     contentRichness: contentRichnessResult.score,
+    // Phase 2
+    botBlocking: botBlockingScore,
+    schemaAccuracy: schemaAccuracyResult.score,
+    authorEeat: authorEeatResult.score,
+    contentQuality: contentQualityResult.score,
   };
 
-  // 7. Calculate weighted overall score
-  const weightedScore =
-    subScores.schema * SCORING_WEIGHTS.schema +
-    subScores.entity * SCORING_WEIGHTS.entity +
-    subScores.speakable * SCORING_WEIGHTS.speakable +
-    subScores.structure * SCORING_WEIGHTS.structure +
-    subScores.faq * SCORING_WEIGHTS.faq +
-    subScores.summary * SCORING_WEIGHTS.summary +
-    subScores.feed * SCORING_WEIGHTS.feed;
+  // 7. Calculate weighted overall score (~55 factors)
+  let weightedScore = 0;
+  for (const [key, weight] of Object.entries(SCORING_WEIGHTS)) {
+    weightedScore += (subScores[key as keyof SubScores] ?? 0) * weight;
+  }
 
   const score = Math.round(weightedScore);
   const tier = getTier(score);
 
-  // 8. Calculate layer scores
+  // 8. Calculate layer scores (expanded for Phase 2)
   const layerScores: LayerScores = {
-    access: Math.round(crawlAccessResult.score * 0.6 + feedResult.score * 0.4),
+    access: Math.round(
+      crawlAccessResult.score * 0.35 +
+      feedResult.score * 0.25 +
+      botBlockingScore * 0.40,
+    ),
     understanding: Math.round(
-      schemaResult.score * 0.4 + structureResult.score * 0.3 + entityResult.score * 0.3,
+      schemaResult.score * 0.25 +
+      structureResult.score * 0.20 +
+      entityResult.score * 0.20 +
+      schemaAccuracyResult.score * 0.15 +
+      authorEeatResult.score * 0.20,
     ),
     extractability: Math.round(
-      faqResult.score * 0.25 +
-        summaryResult.score * 0.25 +
-        contentRichnessResult.score * 0.25 +
-        subScores.speakable * 0.25,
+      faqResult.score * 0.20 +
+      summaryResult.score * 0.20 +
+      contentRichnessResult.score * 0.20 +
+      contentQualityResult.score * 0.20 +
+      subScores.speakable * 0.20,
     ),
   };
 
@@ -216,6 +254,36 @@ export async function scanUrl(
       hasImages: contentRichnessResult.hasImages,
       hasAuthor: contentRichnessResult.hasAuthor,
       hasFreshDate: contentRichnessResult.hasFreshDate,
+    },
+    // Phase 2
+    schemaAccuracy: {
+      issues: schemaAccuracyResult.issues,
+      hasMatchingTitle: schemaAccuracyResult.hasMatchingTitle,
+      hasMatchingDescription: schemaAccuracyResult.hasMatchingDescription,
+      hasValidDates: schemaAccuracyResult.hasValidDates,
+      hasMatchingAuthor: schemaAccuracyResult.hasMatchingAuthor,
+    },
+    authorEeat: {
+      hasNamedAuthor: authorEeatResult.hasNamedAuthor,
+      authorName: authorEeatResult.authorName,
+      hasAuthorBio: authorEeatResult.hasAuthorBio,
+      hasAuthorCredentials: authorEeatResult.hasAuthorCredentials,
+      isFresh: authorEeatResult.isFresh,
+      hasTrustPages: authorEeatResult.hasTrustPages,
+      citationCount: authorEeatResult.citationCount,
+    },
+    contentQuality: {
+      frontLoadedAnswers: contentQualityResult.frontLoadedAnswers,
+      conciseAnswerBlocks: contentQualityResult.conciseAnswerBlocks,
+      selfContainmentScore: contentQualityResult.selfContainmentScore,
+      fluffScore: contentQualityResult.fluffScore,
+      factDensity: contentQualityResult.factDensity,
+      hasTldr: contentQualityResult.hasTldr,
+      readabilityScore: contentQualityResult.readabilityScore,
+      altTextCoverage: contentQualityResult.altTextCoverage,
+    },
+    botBlocking: {
+      score: botBlockingScore,
     },
   };
 

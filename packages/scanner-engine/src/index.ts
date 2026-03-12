@@ -29,3 +29,17 @@ export { analyzeCrawlAccess } from './analyzers/crawl-access';
 export type { CrawlAccessResult, RobotsTxtResult } from './analyzers/crawl-access';
 export { analyzeContentRichness } from './analyzers/content-richness';
 export type { ContentRichnessResult } from './analyzers/content-richness';
+
+// Phase 2 Analyzers
+export { analyzeBotBlocking } from './analyzers/phase2/bot-blocking';
+export type { BotBlockingResult } from './analyzers/phase2/bot-blocking';
+export { analyzeSchemaAccuracy } from './analyzers/phase2/schema-accuracy';
+export type { SchemaAccuracyResult } from './analyzers/phase2/schema-accuracy';
+export { analyzeAuthorEeat } from './analyzers/phase2/author-eeat';
+export type { AuthorEeatResult } from './analyzers/phase2/author-eeat';
+export { analyzeContentQuality } from './analyzers/phase2/content-quality';
+export type { ContentQualityResult } from './analyzers/phase2/content-quality';
+
+// Crawl utilities
+export { discoverPages } from './crawl/discover';
+export { computeSiteScore } from './crawl/site-score';

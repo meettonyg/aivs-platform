@@ -15,3 +15,4 @@ const connection = parseRedisUrl(REDIS_URL);
 
 export const scanQueue = new Queue('scan', { connection });
 export const crawlQueue = new Queue('crawl', { connection });
+export const scheduledScanQueue = new Queue('scheduled-scan', { connection });
