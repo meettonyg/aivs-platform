@@ -3,7 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@aivs/db';
-import { pbkdf2 } from 'crypto';
+import { verifyPassword } from '@/lib/crypto';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma) as never,
@@ -34,16 +34,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!user?.passwordHash) return null;
 
-        const [salt, storedHash] = user.passwordHash.split(':');
-        if (!salt || !storedHash) return null;
-
-        const hash = await new Promise<string>((resolve, reject) => {
-          pbkdf2(password, salt, 100000, 64, 'sha512', (err, derivedKey) => {
-            if (err) return reject(err);
-            resolve(derivedKey.toString('hex'));
-          });
-        });
-        if (hash !== storedHash) return null;
+        const isValid = await verifyPassword(password, user.passwordHash);
+        if (!isValid) return null;
 
         return { id: user.id, email: user.email, name: user.name };
       },
