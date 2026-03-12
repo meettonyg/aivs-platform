@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       include: { organization: { include: { members: true } } },
     });
 
-    if (!project || !project.organization.members.some((m) => m.userId === userId)) {
+    if (!project || !project.organization.members.some((m) => m.userId === userId && ['owner', 'admin'].includes(m.role))) {
       return NextResponse.json(
         { success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } },
         { status: 403 },
@@ -101,6 +101,9 @@ export async function GET(request: NextRequest) {
     const projects = await prisma.project.findMany({
       where: {
         scheduleFreq: { not: null },
+        crawlJobs: {
+          none: { status: { in: ['pending', 'running'] } },
+        },
         OR: [
           { lastScheduledAt: null },
           {

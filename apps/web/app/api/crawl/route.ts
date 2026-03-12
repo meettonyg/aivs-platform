@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       include: { organization: { include: { members: true } } },
     });
 
-    if (!project || !project.organization.members.some((m) => m.userId === userId)) {
+    if (!project || !project.organization.members.some((m) => m.userId === userId && ['owner', 'admin'].includes(m.role))) {
       return NextResponse.json(
         { success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } },
         { status: 403 },
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
       include: { organization: { include: { members: true } } },
     });
 
-    if (!project || !project.organization.members.some((m) => m.userId === userId)) {
+    if (!project || !project.organization.members.some((m) => m.userId === userId && ['owner', 'admin'].includes(m.role))) {
       return NextResponse.json(
         { success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } },
         { status: 403 },

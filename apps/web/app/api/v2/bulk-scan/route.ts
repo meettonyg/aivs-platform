@@ -61,6 +61,24 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { urls, projectId, options } = body;
 
+    // Validate project ownership (defense against cross-tenant projectId injection)
+    if (projectId) {
+      const project = await prisma.project.findFirst({
+        where: {
+          id: String(projectId),
+          organizationId: key.organizationId,
+        },
+        select: { id: true },
+      });
+
+      if (!project) {
+        return NextResponse.json(
+          { success: false, error: { code: 'FORBIDDEN', message: 'projectId is not accessible by this API key' } },
+          { status: 403 },
+        );
+      }
+    }
+
     if (!Array.isArray(urls) || urls.length === 0) {
       return NextResponse.json(
         { success: false, error: { code: 'VALIDATION', message: 'urls array is required (1-1000 URLs)' } },

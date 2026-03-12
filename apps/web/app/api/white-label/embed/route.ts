@@ -36,9 +36,32 @@ export async function GET(request: NextRequest) {
   // Check origin
   const origin = request.headers.get('origin') ?? '';
   if (widget?.allowedOrigins && widget.allowedOrigins.length > 0) {
-    const allowed = widget.allowedOrigins.some(
-      (o) => origin.includes(o) || o === '*',
-    );
+    const normalizedOrigin = origin.toLowerCase();
+    let originHost = '';
+    if (normalizedOrigin) {
+      try {
+        originHost = new URL(normalizedOrigin).hostname;
+      } catch {
+        originHost = '';
+      }
+    }
+
+    const allowed = widget.allowedOrigins.some((o: string) => {
+      if (o === '*') return true;
+
+      const normalizedAllowed = String(o).toLowerCase().trim();
+      if (!normalizedAllowed) return false;
+
+      // Exact origin match supports full origin entries (scheme + host + optional port)
+      if (normalizedOrigin === normalizedAllowed) return true;
+
+      // Domain/subdomain match supports entries like "example.com"
+      if (originHost === normalizedAllowed || originHost.endsWith(`.${normalizedAllowed}`)) {
+        return true;
+      }
+
+      return false;
+    });
     if (!allowed) {
       return new NextResponse('// Origin not allowed', {
         status: 403,
