@@ -50,31 +50,67 @@ export function parseCrawlerLogs(
   logContent: string,
   knownBots?: string[],
 ): CrawlerLogReport {
+  const visits = parseVisitsFromLogContent(logContent);
+  return buildReport(visits, knownBots);
+}
+
+export async function parseCrawlerLogsAsync(
+  logContent: string,
+  knownBots?: string[],
+): Promise<CrawlerLogReport> {
+  const visits = await parseVisitsFromLogContentAsync(logContent, 500);
+  return buildReport(visits, knownBots);
+}
+
+function parseVisitsFromLogContent(logContent: string): CrawlerVisit[] {
   const lines = logContent.split('\n').filter(Boolean);
   const visits: CrawlerVisit[] = [];
 
   for (const line of lines) {
-    const match = APACHE_LOG_REGEX.exec(line) ?? NGINX_LOG_REGEX.exec(line);
-    if (!match) continue;
-
-    const [, ip, dateStr, , url, statusStr, userAgent] = match;
-    const statusCode = parseInt(statusStr, 10);
-
-    // Identify bot
-    const bot = identifyBot(userAgent);
-    if (!bot) continue;
-
-    visits.push({
-      timestamp: parseLogDate(dateStr),
-      bot,
-      url,
-      statusCode,
-      userAgent,
-      ip,
-    });
+    const visit = parseCrawlerVisitLine(line);
+    if (visit) visits.push(visit);
   }
 
-  return buildReport(visits, knownBots);
+  return visits;
+}
+
+async function parseVisitsFromLogContentAsync(
+  logContent: string,
+  yieldEvery = 500,
+): Promise<CrawlerVisit[]> {
+  const lines = logContent.split('\n').filter(Boolean);
+  const visits: CrawlerVisit[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const visit = parseCrawlerVisitLine(lines[i]);
+    if (visit) visits.push(visit);
+
+    if (i > 0 && i % yieldEvery === 0) {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    }
+  }
+
+  return visits;
+}
+
+function parseCrawlerVisitLine(line: string): CrawlerVisit | null {
+  const match = APACHE_LOG_REGEX.exec(line) ?? NGINX_LOG_REGEX.exec(line);
+  if (!match) return null;
+
+  const [, ip, dateStr, , url, statusStr, userAgent] = match;
+  const statusCode = parseInt(statusStr, 10);
+
+  const bot = identifyBot(userAgent);
+  if (!bot) return null;
+
+  return {
+    timestamp: parseLogDate(dateStr),
+    bot,
+    url,
+    statusCode,
+    userAgent,
+    ip,
+  };
 }
 
 function identifyBot(userAgent: string): string | null {

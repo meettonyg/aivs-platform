@@ -4,7 +4,7 @@
  * Sends adaptive card notifications via Teams webhook connectors.
  */
 
-import { request } from 'undici';
+import { safeOutboundRequest } from '@/lib/safe-outbound-request';
 
 export interface TeamsConfig {
   webhookUrl: string;
@@ -18,7 +18,7 @@ export async function sendTeamsNotification(
   if (!config.enabled || !config.webhookUrl) return false;
 
   try {
-    const res = await request(config.webhookUrl, {
+    const res = await safeOutboundRequest(config.webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -31,7 +31,7 @@ export async function sendTeamsNotification(
           },
         ],
       }),
-      signal: AbortSignal.timeout(5000),
+      timeoutMs: 5000,
     });
 
     await res.body.dump();

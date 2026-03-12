@@ -5,7 +5,7 @@
  * Supports: scan complete, score alerts, weekly digests, crawl complete.
  */
 
-import { request } from 'undici';
+import { safeOutboundRequest } from '@/lib/safe-outbound-request';
 
 export interface SlackConfig {
   webhookUrl: string;
@@ -28,7 +28,7 @@ export async function sendSlackNotification(
   if (!config.enabled || !config.webhookUrl) return false;
 
   try {
-    const res = await request(config.webhookUrl, {
+    const res = await safeOutboundRequest(config.webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -36,7 +36,7 @@ export async function sendSlackNotification(
         blocks: message.blocks,
         text: message.fallbackText,
       }),
-      signal: AbortSignal.timeout(5000),
+      timeoutMs: 5000,
     });
 
     await res.body.dump();
