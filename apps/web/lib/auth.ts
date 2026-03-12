@@ -3,11 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@aivs/db';
-import { createHash } from 'crypto';
-
-function hashPassword(password: string): string {
-  return createHash('sha256').update(password).digest('hex');
-}
+import { pbkdf2Sync } from 'crypto';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma) as never,
@@ -38,8 +34,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!user?.passwordHash) return null;
 
-        const inputHash = hashPassword(password);
-        if (inputHash !== user.passwordHash) return null;
+        const [salt, storedHash] = user.passwordHash.split(':');
+        if (!salt || !storedHash) return null;
+
+        const hash = pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+        if (hash !== storedHash) return null;
 
         return { id: user.id, email: user.email, name: user.name };
       },

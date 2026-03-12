@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@aivs/db';
 import { auth } from '@/lib/auth';
-import { scheduledScanQueue } from '@/lib/queue';
+import { crawlQueue } from '@/lib/queue';
 
 /**
  * POST /api/agency/schedules — Set scan schedule for a project
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
             // Monthly: last scan > 30d ago
             AND: [
               { scheduleFreq: 'monthly' },
-              { lastScheduledAt: { lt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) } },
+              { lastScheduledAt: { lt: new Date(new Date(now).setMonth(now.getMonth() - 1)) } },
             ],
           },
         ],
@@ -133,9 +133,11 @@ export async function GET(request: NextRequest) {
     for (const project of projects) {
       if (project.organization.crawlCreditsRemaining <= 0) continue;
 
-      await scheduledScanQueue.add('scheduled-scan', {
+      await crawlQueue.add('crawl', {
         projectId: project.id,
         organizationId: project.organizationId,
+        maxPages: 50,
+        isIncremental: true,
       });
       enqueued++;
     }

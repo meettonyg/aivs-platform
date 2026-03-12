@@ -76,38 +76,43 @@ export async function POST(request: NextRequest) {
     }
 
     const toImport = domains.slice(0, slotsRemaining);
-    const created: { id: string; domain: string; name: string }[] = [];
-    const skipped: { domain: string; reason: string }[] = [];
 
-    for (const entry of toImport) {
-      const domain = String(entry.domain ?? '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
-      if (!domain || domain.length < 3) {
-        skipped.push({ domain: entry.domain, reason: 'Invalid domain' });
-        continue;
+    const { created, skipped } = await prisma.$transaction(async (tx) => {
+      const createdProjects: { id: string; domain: string; name: string }[] = [];
+      const skippedDomains: { domain: string; reason: string }[] = [];
+
+      for (const entry of toImport) {
+        const domain = String(entry.domain ?? '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+        if (!domain || domain.length < 3) {
+          skippedDomains.push({ domain: entry.domain, reason: 'Invalid domain' });
+          continue;
+        }
+
+        // Check for duplicates
+        const existing = await tx.project.findFirst({
+          where: { organizationId: org.id, domain },
+        });
+
+        if (existing) {
+          skippedDomains.push({ domain, reason: 'Already exists' });
+          continue;
+        }
+
+        const name = entry.name ?? domain.replace(/\.[^.]+$/, '').replace(/[^a-z0-9]/gi, ' ');
+
+        const project = await tx.project.create({
+          data: {
+            organizationId: org.id,
+            domain,
+            name,
+          },
+        });
+
+        createdProjects.push({ id: project.id, domain, name });
       }
 
-      // Check for duplicates
-      const existing = await prisma.project.findFirst({
-        where: { organizationId: org.id, domain },
-      });
-
-      if (existing) {
-        skipped.push({ domain, reason: 'Already exists' });
-        continue;
-      }
-
-      const name = entry.name ?? domain.replace(/\.[^.]+$/, '').replace(/[^a-z0-9]/gi, ' ');
-
-      const project = await prisma.project.create({
-        data: {
-          organizationId: org.id,
-          domain,
-          name,
-        },
-      });
-
-      created.push({ id: project.id, domain, name });
-    }
+      return { created: createdProjects, skipped: skippedDomains };
+    });
 
     return NextResponse.json({
       success: true,
