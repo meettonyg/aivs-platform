@@ -13,5 +13,19 @@ function parseRedisUrl(url: string) {
 
 const connection = parseRedisUrl(REDIS_URL);
 
-export const scanQueue = new Queue('scan', { connection });
-export const crawlQueue = new Queue('crawl', { connection });
+let scanQueueInstance: Queue | null = null;
+let crawlQueueInstance: Queue | null = null;
+
+export function getScanQueue(): Queue {
+  if (!scanQueueInstance) {
+    scanQueueInstance = new Queue('scan', { connection });
+  }
+  return scanQueueInstance;
+}
+
+export function getCrawlQueue(): Queue {
+  if (!crawlQueueInstance) {
+    crawlQueueInstance = new Queue('crawl', { connection });
+  }
+  return crawlQueueInstance;
+}

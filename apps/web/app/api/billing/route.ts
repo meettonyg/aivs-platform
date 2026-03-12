@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@aivs/db';
 import { auth } from '@/lib/auth';
-import { stripe, PRICE_IDS } from '@/lib/stripe';
+import { getStripe, PRICE_IDS } from '@/lib/stripe';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
   let customerId = org.stripeCustomerId;
   if (!customerId) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    const customer = await stripe.customers.create({
+    const customer = await getStripe().customers.create({
       email: user?.email ?? undefined,
       name: org.name,
       metadata: { organizationId: org.id },
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Create checkout session
-  const checkoutSession = await stripe.checkout.sessions.create({
+  const checkoutSession = await getStripe().checkout.sessions.create({
     customer: customerId,
     mode: 'subscription',
     line_items: [{ price: PRICE_IDS[plan], quantity: 1 }],

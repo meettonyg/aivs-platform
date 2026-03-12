@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@aivs/db';
-import { scanQueue } from '@/lib/queue';
+import { getScanQueue } from '@/lib/queue';
 import { createHash } from 'crypto';
 
 /**
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
     // Enqueue all valid URLs
     const jobIds: string[] = [];
     for (const url of validUrls) {
-      const job = await scanQueue.add('scan', {
+      const job = await getScanQueue().add('scan', {
         url,
         projectId: projectId ?? null,
         organizationId: key.organizationId,

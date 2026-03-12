@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@aivs/db';
 import { auth } from '@/lib/auth';
-import { crawlQueue } from '@/lib/queue';
+import { getCrawlQueue } from '@/lib/queue';
 
 /**
  * POST /api/crawl — Start a new site crawl
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Enqueue crawl job
-    const job = await crawlQueue.add('crawl', {
+    const job = await getCrawlQueue().add('crawl', {
       projectId,
       organizationId: project.organizationId,
       maxPages: maxPages ?? 100,
