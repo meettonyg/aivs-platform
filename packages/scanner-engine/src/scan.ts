@@ -1,13 +1,23 @@
 /**
  * Main scan orchestrator.
  * Ported from aivs_scan_url() in aivs-scanner/inc/scanner-engine.php.
- *
- * TODO: Port each analyzer function from PHP to TypeScript.
- * See scanner-engine.php lines 30-180 for the full orchestration flow.
  */
 
-import type { ScanResult, ScanOptions } from '@aivs/types';
+import * as cheerio from 'cheerio';
+import { request } from 'undici';
+import type { ScanResult, ScanOptions, SubScores, LayerScores } from '@aivs/types';
 import { getTier } from './tiers';
+import { analyzeSchema } from './analyzers/schema';
+import { analyzeStructure } from './analyzers/structure';
+import { analyzeFaq } from './analyzers/faq';
+import { analyzeSummaries } from './analyzers/summaries';
+import { analyzeFeeds } from './analyzers/feeds';
+import { analyzeEntities } from './analyzers/entities';
+import { analyzeCrawlAccess } from './analyzers/crawl-access';
+import { analyzeContentRichness } from './analyzers/content-richness';
+import { generateFixes } from './fixes';
+import { generateCitationSimulation } from './citation-sim';
+import { createHash } from 'crypto';
 
 /**
  * Scoring weights — extracted from scanner-engine.php lines 184-192.
@@ -23,17 +33,264 @@ export const SCORING_WEIGHTS = {
   feed: 0.10,
 } as const;
 
+const FETCH_TIMEOUT = 15_000;
+const MAX_HTML_SIZE = 5 * 1024 * 1024; // 5 MB
+
+function validateUrl(url: string): URL {
+  const parsed = new URL(url);
+
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new Error('Only HTTP and HTTPS URLs are supported');
+  }
+
+  const hostname = parsed.hostname;
+  if (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '::1' ||
+    hostname.startsWith('10.') ||
+    hostname.startsWith('192.168.') ||
+    hostname.match(/^172\.(1[6-9]|2\d|3[01])\./) ||
+    hostname === '0.0.0.0' ||
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.internal')
+  ) {
+    throw new Error('Internal/private URLs are not allowed');
+  }
+
+  return parsed;
+}
+
 export async function scanUrl(
   url: string,
-  options?: ScanOptions
+  options?: ScanOptions,
 ): Promise<ScanResult> {
-  // TODO: Implement — port from aivs_scan_url()
   // 1. Validate URL (SSRF protection)
+  const parsedUrl = validateUrl(url);
+  const normalizedUrl = parsedUrl.toString();
+
   // 2. Fetch HTML via undici
+  const startTime = Date.now();
+  const { statusCode, headers, body } = await request(normalizedUrl, {
+    method: 'GET',
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; AIVisibilityScanner/1.0)',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.5',
+    },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT),
+    maxRedirections: 5,
+  });
+  const ttfbMs = Date.now() - startTime;
+
+  if (statusCode < 200 || statusCode >= 400) {
+    throw new Error(`HTTP ${statusCode} fetching ${normalizedUrl}`);
+  }
+
+  const contentType = String(headers['content-type'] ?? '');
+  if (!contentType.includes('text/html') && !contentType.includes('application/xhtml')) {
+    throw new Error(`Non-HTML content type: ${contentType}`);
+  }
+
+  const html = await body.text();
+  if (html.length > MAX_HTML_SIZE) {
+    throw new Error('HTML exceeds maximum size limit');
+  }
+
   // 3. Parse with cheerio
-  // 4. Run all analyzers
-  // 5. Calculate weighted score
-  // 6. Generate fixes
-  // 7. Generate citation simulation
-  throw new Error('Not yet implemented — port from scanner-engine.php');
+  const $ = cheerio.load(html);
+
+  // 4. Fetch robots.txt
+  let robotsTxt: string | undefined;
+  try {
+    const robotsUrl = `${parsedUrl.protocol}//${parsedUrl.host}/robots.txt`;
+    const robotsRes = await request(robotsUrl, {
+      method: 'GET',
+      signal: AbortSignal.timeout(5000),
+      maxRedirections: 3,
+    });
+    if (robotsRes.statusCode === 200) {
+      robotsTxt = await robotsRes.body.text();
+    } else {
+      await robotsRes.body.dump();
+    }
+  } catch {
+    // robots.txt not available
+  }
+
+  // 5. Run all analyzers
+  const schemaResult = analyzeSchema($);
+  const structureResult = analyzeStructure($);
+  const faqResult = analyzeFaq($);
+  const summaryResult = analyzeSummaries($);
+  const feedResult = analyzeFeeds($, normalizedUrl, robotsTxt);
+  const entityResult = analyzeEntities($);
+  const crawlAccessResult = analyzeCrawlAccess($, normalizedUrl, robotsTxt, ttfbMs);
+  const contentRichnessResult = analyzeContentRichness($, normalizedUrl);
+
+  // 6. Build sub-scores
+  const subScores: SubScores = {
+    schema: schemaResult.score,
+    entity: entityResult.score,
+    speakable: schemaResult.details.speakable ? 100 : 0,
+    structure: structureResult.score,
+    faq: faqResult.score,
+    summary: summaryResult.score,
+    feed: feedResult.score,
+    crawlAccess: crawlAccessResult.score,
+    contentRichness: contentRichnessResult.score,
+  };
+
+  // 7. Calculate weighted overall score
+  const weightedScore =
+    subScores.schema * SCORING_WEIGHTS.schema +
+    subScores.entity * SCORING_WEIGHTS.entity +
+    subScores.speakable * SCORING_WEIGHTS.speakable +
+    subScores.structure * SCORING_WEIGHTS.structure +
+    subScores.faq * SCORING_WEIGHTS.faq +
+    subScores.summary * SCORING_WEIGHTS.summary +
+    subScores.feed * SCORING_WEIGHTS.feed;
+
+  const score = Math.round(weightedScore);
+  const tier = getTier(score);
+
+  // 8. Calculate layer scores
+  const layerScores: LayerScores = {
+    access: Math.round(crawlAccessResult.score * 0.6 + feedResult.score * 0.4),
+    understanding: Math.round(
+      schemaResult.score * 0.4 + structureResult.score * 0.3 + entityResult.score * 0.3,
+    ),
+    extractability: Math.round(
+      faqResult.score * 0.25 +
+        summaryResult.score * 0.25 +
+        contentRichnessResult.score * 0.25 +
+        subScores.speakable * 0.25,
+    ),
+  };
+
+  // 9. Build extraction data
+  const extraction = {
+    schema: {
+      types: schemaResult.types,
+      details: schemaResult.details,
+      jsonLdCount: schemaResult.jsonLdObjects.length,
+    },
+    structure: {
+      headingCount: structureResult.headings.length,
+      headingHierarchyValid: structureResult.headingHierarchyValid,
+      wordCount: structureResult.wordCount,
+      listCount: structureResult.listCount,
+      tableCount: structureResult.tableCount,
+    },
+    faq: {
+      hasFaqSchema: faqResult.hasFaqSchema,
+      faqSchemaCount: faqResult.faqSchemaCount,
+      questionPatterns: faqResult.questionPatterns.length,
+    },
+    summary: {
+      metaDescriptionLength: summaryResult.metaDescriptionLength,
+      hasOgDescription: !!summaryResult.ogDescription,
+      hasDefinitionPattern: summaryResult.hasDefinitionPattern,
+      hasTldr: summaryResult.hasTldr,
+    },
+    feeds: {
+      hasRss: feedResult.hasRss,
+      hasSitemap: feedResult.hasSitemap,
+      hasLlmsTxt: feedResult.hasLlmsTxt,
+    },
+    entities: {
+      entityDensity: entityResult.entityDensity,
+      entityCount: entityResult.entityCount,
+      hasAuthor: entityResult.hasAuthorEntity,
+    },
+    crawlAccess: {
+      isHttps: crawlAccessResult.isHttps,
+      hasCanonical: crawlAccessResult.hasCanonical,
+      isIndexable: crawlAccessResult.isIndexable,
+      isSpa: crawlAccessResult.isSpa,
+      ttfbMs,
+    },
+    contentRichness: {
+      hasStatistics: contentRichnessResult.hasStatistics,
+      hasCitations: contentRichnessResult.hasCitations,
+      hasImages: contentRichnessResult.hasImages,
+      hasAuthor: contentRichnessResult.hasAuthor,
+      hasFreshDate: contentRichnessResult.hasFreshDate,
+    },
+  };
+
+  // 10. Generate fixes
+  const fixes = generateFixes(subScores, extraction);
+
+  // 11. Generate citation simulation
+  const citationSimulation = generateCitationSimulation(subScores, layerScores, extraction);
+
+  // 12. Detect page type
+  const pageType = detectPageType($, options?.pageType);
+
+  // 13. Generate hash
+  const hash = createHash('md5').update(normalizedUrl + Date.now()).digest('hex').slice(0, 12);
+
+  return {
+    url: normalizedUrl,
+    score,
+    tier: tier.key,
+    subScores,
+    layerScores,
+    extraction,
+    fixes,
+    citationSimulation,
+    robotsData: crawlAccessResult.robotsTxt
+      ? {
+          exists: crawlAccessResult.robotsTxt.exists,
+          allowsGptBot: crawlAccessResult.robotsTxt.allowsGptBot,
+          allowsClaudeBot: crawlAccessResult.robotsTxt.allowsClaudeBot,
+          hasSitemap: crawlAccessResult.robotsTxt.hasSitemap,
+        }
+      : {},
+    pageType,
+    scannedAt: new Date().toISOString(),
+    hash,
+  };
+}
+
+function detectPageType($: cheerio.CheerioAPI, hint?: string): string {
+  if (hint) return hint;
+
+  const schemaTypes = new Set<string>();
+  $('script[type="application/ld+json"]').each((_, el) => {
+    try {
+      const parsed = JSON.parse($(el).text().trim());
+      const items = Array.isArray(parsed) ? parsed : [parsed];
+      for (const item of items) {
+        const record = item as Record<string, unknown>;
+        if (typeof record['@type'] === 'string') schemaTypes.add(record['@type']);
+      }
+    } catch {
+      // skip
+    }
+  });
+
+  if (schemaTypes.has('Product')) return 'product';
+  if (schemaTypes.has('BlogPosting') || schemaTypes.has('NewsArticle')) return 'blog-post';
+  if (schemaTypes.has('Article')) return 'article';
+  if (schemaTypes.has('FAQPage')) return 'faq';
+  if (schemaTypes.has('LocalBusiness')) return 'local-business';
+  if (schemaTypes.has('Event')) return 'event';
+
+  const url = $('link[rel="canonical"]').attr('href') ?? '';
+  if (/\/(blog|news|post|article)\//i.test(url)) return 'blog-post';
+  if (/\/(product|shop|store)\//i.test(url)) return 'product';
+  if (/\/(service|services)\//i.test(url)) return 'service';
+  if (/\/(about)\//i.test(url)) return 'about';
+  if (/\/(contact)\//i.test(url)) return 'contact';
+
+  try {
+    const path = new URL(url || 'https://example.com').pathname;
+    if (path === '/' || path === '') return 'homepage';
+  } catch {
+    // skip
+  }
+
+  return 'page';
 }
