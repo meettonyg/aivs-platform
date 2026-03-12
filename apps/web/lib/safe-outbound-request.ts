@@ -80,7 +80,7 @@ function isPrivateIp(address: string): boolean {
     );
   }
 
-  return true;
+  return false;
 }
 
 function toIPv4Number(ip: string): number {

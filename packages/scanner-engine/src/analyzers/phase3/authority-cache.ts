@@ -72,7 +72,7 @@ type RedisLike = {
   get: (key: string) => Promise<string | null>;
   set: (key: string, value: string, mode: "EX", ttl: number) => Promise<unknown>;
   del: (...keys: string[]) => Promise<unknown>;
-  keys: (pattern: string) => Promise<string[]>;
+  scan: (cursor: string, command: 'MATCH', pattern: string, countCommand: 'COUNT', count: number) => Promise<[string, string[]]>;
   on: (event: string, handler: (...args: unknown[]) => void) => void;
 };
 
@@ -85,7 +85,7 @@ function getRedisClient(): RedisLike | null {
   if (!redisUrl) return null;
 
   try {
-    const RedisCtor = eval('require')('ioredis');
+    const RedisCtor = require('ioredis');
     redisClient = new RedisCtor(redisUrl, {
       maxRetriesPerRequest: 1,
       enableReadyCheck: false,
@@ -186,10 +186,14 @@ export async function clearAuthorityCache(domain?: string): Promise<void> {
   fallbackCache.clear();
   if (redis) {
     try {
-      const keys = await redis.keys(`${CACHE_PREFIX}*`);
-      if (keys.length > 0) {
-        await redis.del(keys);
-      }
+      let cursor = '0';
+      do {
+        const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', `${CACHE_PREFIX}*`, 'COUNT', 100);
+        cursor = nextCursor;
+        if (keys.length > 0) {
+          await redis.del(...keys);
+        }
+      } while (cursor !== '0');
     } catch {
       // noop
     }
