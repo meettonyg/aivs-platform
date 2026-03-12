@@ -1,4 +1,3 @@
-import { request, type Dispatcher, type HeadersInit } from 'undici';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 
@@ -14,11 +13,18 @@ const PRIVATE_IPV4_RANGES: Array<[number, number]> = [
 export interface SafeRequestOptions {
   method: string;
   headers?: HeadersInit;
-  body?: Dispatcher.BodyInit;
+  body?: BodyInit;
   timeoutMs?: number;
 }
 
-export async function safeOutboundRequest(url: string, options: SafeRequestOptions) {
+export interface SafeRequestResponse {
+  statusCode: number;
+  body: {
+    dump: () => Promise<void>;
+  };
+}
+
+export async function safeOutboundRequest(url: string, options: SafeRequestOptions): Promise<SafeRequestResponse> {
   const parsed = new URL(url);
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
     throw new Error('Only HTTP(S) URLs are allowed');
@@ -30,13 +36,22 @@ export async function safeOutboundRequest(url: string, options: SafeRequestOptio
 
   await assertPublicDestination(parsed.hostname);
 
-  return request(url, {
+  const response = await fetch(url, {
     method: options.method,
     headers: options.headers,
     body: options.body,
+    redirect: 'manual',
     signal: AbortSignal.timeout(options.timeoutMs ?? 5000),
-    maxRedirections: 0,
   });
+
+  return {
+    statusCode: response.status,
+    body: {
+      dump: async () => {
+        await response.arrayBuffer();
+      },
+    },
+  };
 }
 
 function isBlockedHostname(hostname: string): boolean {

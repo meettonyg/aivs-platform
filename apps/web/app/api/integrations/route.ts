@@ -3,6 +3,10 @@ import { prisma } from '@aivs/db';
 import { auth } from '@/lib/auth';
 import type { WhiteLabelConfig } from '@aivs/types';
 
+
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+
 /**
  * GET /api/integrations — Get configured integrations
  * PUT /api/integrations — Update integration config
@@ -11,6 +15,7 @@ import type { WhiteLabelConfig } from '@aivs/types';
  */
 
 interface IntegrationsConfig {
+  [key: string]: JsonValue | undefined;
   slack?: {
     webhookUrl: string;
     channel?: string;
