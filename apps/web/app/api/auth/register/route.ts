@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@aivs/db';
-import { randomBytes, pbkdf2Sync } from 'crypto';
+import { randomBytes, pbkdf2 } from 'crypto';
 
-function hashPassword(password: string): string {
+async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16).toString('hex');
-  const hash = pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  const hash = await new Promise<string>((resolve, reject) => {
+    pbkdf2(password, salt, 100000, 64, 'sha512', (err, derivedKey) => {
+      if (err) return reject(err);
+      resolve(derivedKey.toString('hex'));
+    });
+  });
   return `${salt}:${hash}`;
 }
 
@@ -49,7 +54,7 @@ export async function POST(request: NextRequest) {
         data: {
           name,
           email,
-          passwordHash: hashPassword(password),
+          passwordHash: await hashPassword(password),
         },
       });
 
