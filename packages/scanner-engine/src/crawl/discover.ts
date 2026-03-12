@@ -99,7 +99,6 @@ async function fetchSitemapUrls(baseUrl: string): Promise<{ url: string; priorit
   try {
     const robotsRes = await request(`${baseUrl}/robots.txt`, {
       signal: AbortSignal.timeout(5000),
-      maxRedirections: 3,
     });
     if (robotsRes.statusCode === 200) {
       const robotsTxt = await robotsRes.body.text();
@@ -123,7 +122,6 @@ async function fetchSitemapUrls(baseUrl: string): Promise<{ url: string; priorit
     try {
       const res = await request(sitemapUrl, {
         signal: AbortSignal.timeout(10_000),
-        maxRedirections: 3,
       });
       if (res.statusCode !== 200) {
         await res.body.dump();
@@ -139,7 +137,6 @@ async function fetchSitemapUrls(baseUrl: string): Promise<{ url: string; priorit
           try {
             const subRes = await request(indexUrl, {
               signal: AbortSignal.timeout(10_000),
-              maxRedirections: 3,
             });
             if (subRes.statusCode === 200) {
               const subXml = await subRes.body.text();
@@ -197,7 +194,6 @@ async function discoverLinksFromPage(pageUrl: string, domain: string): Promise<s
       'User-Agent': 'Mozilla/5.0 (compatible; AIVisibilityScanner/1.0)',
     },
     signal: AbortSignal.timeout(10_000),
-    maxRedirections: 5,
   });
 
   if (res.statusCode < 200 || res.statusCode >= 400) {

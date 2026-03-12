@@ -45,8 +45,9 @@ export function analyzeSummaries($: CheerioAPI): SummaryResult {
       openingParagraph = text;
     }
   });
-  const openingParagraphLength = openingParagraph
-    ? openingParagraph.split(/\s+/).length
+  const openingParagraphText = openingParagraph ?? '';
+  const openingParagraphLength = openingParagraphText.length > 0
+    ? openingParagraphText.split(/\s+/).length
     : 0;
 
   let hasDefinitionPattern = false;

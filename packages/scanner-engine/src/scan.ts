@@ -91,7 +91,6 @@ export async function scanUrl(
       'Accept-Language': 'en-US,en;q=0.5',
     },
     signal: AbortSignal.timeout(FETCH_TIMEOUT),
-    maxRedirections: 5,
   });
   const ttfbMs = Date.now() - startTime;
 
@@ -119,7 +118,6 @@ export async function scanUrl(
     const robotsRes = await request(robotsUrl, {
       method: 'GET',
       signal: AbortSignal.timeout(5000),
-      maxRedirections: 3,
     });
     if (robotsRes.statusCode === 200) {
       robotsTxt = await robotsRes.body.text();

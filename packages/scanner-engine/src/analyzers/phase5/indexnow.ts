@@ -30,7 +30,6 @@ export async function analyzeIndexNow(domain: string): Promise<IndexNowResult> {
     try {
       const res = await request(loc, {
         signal: AbortSignal.timeout(5000),
-        maxRedirections: 3,
       });
       if (res.statusCode === 200) {
         const text = await res.body.text();
@@ -50,7 +49,6 @@ export async function analyzeIndexNow(domain: string): Promise<IndexNowResult> {
     try {
       const res = await request(`${baseUrl}/robots.txt`, {
         signal: AbortSignal.timeout(5000),
-        maxRedirections: 3,
       });
       if (res.statusCode === 200) {
         const robotsTxt = await res.body.text();
