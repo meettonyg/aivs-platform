@@ -22,6 +22,11 @@ export interface SubScores {
   feed: number;
   crawlAccess: number;
   contentRichness: number;
+  // Phase 2 sub-scores
+  botBlocking: number;
+  schemaAccuracy: number;
+  authorEeat: number;
+  contentQuality: number;
 }
 
 export interface LayerScores {

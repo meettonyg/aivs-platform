@@ -68,12 +68,16 @@ model Organization {
   crawlCreditsRemaining Int      @default(5) @map("crawl_credits_remaining")
   currentPeriodEnd      DateTime? @map("current_period_end")
   settings              Json     @default("{}") // White-label config, branding, etc.
+  parentOrgId           String?  @map("parent_org_id") // Agency sub-org support
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 
+  parentOrg Organization?  @relation("AgencyClients", fields: [parentOrgId], references: [id])
+  childOrgs Organization[] @relation("AgencyClients")
   members   OrgMember[]
   projects  Project[]
   apiKeys   ApiKey[]
+  webhooks  Webhook[]
 
   @@map("organizations")
 }
@@ -100,6 +104,10 @@ model Project {
   organizationId String   @map("organization_id")
   domain         String
   name           String
+  scheduleFreq   String?  @map("schedule_freq") // weekly, daily, monthly
+  lastScheduledAt DateTime? @map("last_scheduled_at")
+  siteScore      Int?     @map("site_score") // Aggregate domain-level score
+  siteTier       String?  @map("site_tier")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -126,8 +134,10 @@ model Scan {
   robotsData        Json     @default("{}") @map("robots_data")
   pageType          String?  @map("page_type")
   rawText           String?  @map("raw_text") @db.Text
+  contentHash       String?  @map("content_hash") // MD5 of body text for incremental re-scans
   competitorData    Json?    @map("competitor_data")
   crawlJobId        String?  @map("crawl_job_id")
+  factorVersion     Int      @default(1) @map("factor_version") // 1=27 factors, 2=55 factors
   createdAt         DateTime @default(now()) @map("created_at")
 
   project  Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -135,19 +145,38 @@ model Scan {
 
   @@index([projectId, createdAt])
   @@index([url])
+  @@index([contentHash])
   @@map("scans")
 }
 
+model ScanHistory {
+  id          String   @id @default(cuid())
+  projectId   String   @map("project_id")
+  url         String
+  score       Int
+  prevScore   Int?     @map("prev_score")
+  subScores   Json     @map("sub_scores")
+  scannedAt   DateTime @map("scanned_at")
+
+  @@index([projectId, url, scannedAt])
+  @@map("scan_history")
+}
+
 model CrawlJob {
-  id             String    @id @default(cuid())
-  projectId      String    @map("project_id")
-  status         String    @default("pending") // pending, running, completed, failed
-  pagesTotal     Int       @default(0) @map("pages_total")
-  pagesCompleted Int       @default(0) @map("pages_completed")
-  creditsUsed    Int       @default(0) @map("credits_used")
-  startedAt      DateTime? @map("started_at")
-  completedAt    DateTime? @map("completed_at")
-  createdAt      DateTime  @default(now()) @map("created_at")
+  id              String    @id @default(cuid())
+  projectId       String    @map("project_id")
+  status          String    @default("pending") // pending, running, completed, failed
+  pagesTotal      Int       @default(0) @map("pages_total")
+  pagesCompleted  Int       @default(0) @map("pages_completed")
+  pagesSkipped    Int       @default(0) @map("pages_skipped") // Unchanged pages (incremental)
+  creditsUsed     Int       @default(0) @map("credits_used")
+  maxPages        Int?      @map("max_pages")
+  isIncremental   Boolean   @default(false) @map("is_incremental")
+  deltaReport     Json?     @map("delta_report") // { improved: [...], declined: [...], new: [...] }
+  siteScore       Int?      @map("site_score") // Aggregate score at crawl completion
+  startedAt       DateTime? @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   scans   Scan[]
@@ -165,10 +194,49 @@ model ApiKey {
   organizationId String    @map("organization_id")
   keyHash        String    @unique @map("key_hash")
   label          String
+  rateLimit      Int       @default(100) @map("rate_limit") // Requests per minute
+  scopes         String[]  @default(["scan:read", "scan:write"]) // Permission scopes
   lastUsedAt     DateTime? @map("last_used_at")
   createdAt      DateTime  @default(now()) @map("created_at")
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@map("api_keys")
+}
+
+// ──────────────────────────────────────
+// Webhooks & Alerts (Phase 4)
+// ──────────────────────────────────────
+
+model Webhook {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  url            String
+  events         String[] // scan.complete, score.changed, crawl.complete, credits.low
+  secret         String   // HMAC signing secret
+  active         Boolean  @default(true)
+  failureCount   Int      @default(0) @map("failure_count")
+  lastTriggeredAt DateTime? @map("last_triggered_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("webhooks")
+}
+
+model Alert {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  projectId      String?  @map("project_id")
+  type           String   // score_drop, score_improvement, tier_change, factor_regression, credits_low
+  severity       String   // critical, warning, info
+  title          String
+  message        String   @db.Text
+  url            String?
+  metadata       Json     @default("{}")
+  readAt         DateTime? @map("read_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([organizationId, readAt, createdAt])
+  @@map("alerts")
 }
