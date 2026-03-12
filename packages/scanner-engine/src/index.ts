@@ -72,6 +72,14 @@ export type { CrawlerLogReport } from './citation-monitor/log-parser';
 export { checkScoreAlerts, DEFAULT_ALERT_CONFIG } from './citation-monitor/score-alerts';
 export type { ScoreAlert, AlertConfig } from './citation-monitor/score-alerts';
 
+// Phase 5 Analyzers — Remaining Experimental Factors
+export { analyzeIndexNow } from './analyzers/phase5/indexnow';
+export type { IndexNowResult } from './analyzers/phase5/indexnow';
+export { analyzeCrossPageEntities } from './analyzers/phase5/cross-page-entities';
+export type { CrossPageEntityResult } from './analyzers/phase5/cross-page-entities';
+export { analyzeYmylSensitivity } from './analyzers/phase5/ymyl-sensitivity';
+export type { YmylResult } from './analyzers/phase5/ymyl-sensitivity';
+
 // Crawl utilities
 export { discoverPages } from './crawl/discover';
 export { computeSiteScore } from './crawl/site-score';
