@@ -1,0 +1,26 @@
+{
+  "name": "aivs-platform",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "db:migrate": "turbo db:migrate --filter=@aivs/db",
+    "db:generate": "turbo db:generate --filter=@aivs/db",
+    "db:studio": "pnpm --filter @aivs/db exec prisma studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0",
+    "typescript": "^5.7.0"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

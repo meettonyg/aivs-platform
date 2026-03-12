@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ──────────────────────────────────────
+// Auth & Multi-Tenancy
+// ──────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String?   @map("password_hash")
+  image         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  memberships   OrgMember[]
+  accounts      Account[]
+  sessions      Session[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refreshToken      String? @map("refresh_token") @db.Text
+  accessToken       String? @map("access_token") @db.Text
+  expiresAt         Int?    @map("expires_at")
+  tokenType         String? @map("token_type")
+  scope             String?
+  idToken           String? @map("id_token") @db.Text
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Organization {
+  id                    String   @id @default(cuid())
+  name                  String
+  slug                  String   @unique
+  planTier              String   @default("free") @map("plan_tier")
+  stripeCustomerId      String?  @unique @map("stripe_customer_id")
+  stripeSubscriptionId  String?  @unique @map("stripe_subscription_id")
+  crawlCreditsMonthly   Int      @default(5) @map("crawl_credits_monthly")
+  crawlCreditsRemaining Int      @default(5) @map("crawl_credits_remaining")
+  currentPeriodEnd      DateTime? @map("current_period_end")
+  settings              Json     @default("{}") // White-label config, branding, etc.
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  members   OrgMember[]
+  projects  Project[]
+  apiKeys   ApiKey[]
+
+  @@map("organizations")
+}
+
+model OrgMember {
+  id             String @id @default(cuid())
+  userId         String @map("user_id")
+  organizationId String @map("organization_id")
+  role           String @default("member") // owner, admin, member, client
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@map("org_members")
+}
+
+// ──────────────────────────────────────
+// Projects & Scanning
+// ──────────────────────────────────────
+
+model Project {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  domain         String
+  name           String
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  scans        Scan[]
+  crawlJobs    CrawlJob[]
+
+  @@unique([organizationId, domain])
+  @@map("projects")
+}
+
+model Scan {
+  id                String   @id @default(cuid())
+  projectId         String?  @map("project_id")
+  url               String
+  hash              String   @unique // 12-char MD5
+  score             Int
+  tier              String
+  subScores         Json     @map("sub_scores")
+  layerScores       Json     @map("layer_scores")
+  extraction        Json     @default("{}")
+  fixes             Json     @default("[]")
+  citationSimulation Json    @default("{}") @map("citation_simulation")
+  robotsData        Json     @default("{}") @map("robots_data")
+  pageType          String?  @map("page_type")
+  rawText           String?  @map("raw_text") @db.Text
+  competitorData    Json?    @map("competitor_data")
+  crawlJobId        String?  @map("crawl_job_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  project  Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  crawlJob CrawlJob? @relation(fields: [crawlJobId], references: [id])
+
+  @@index([projectId, createdAt])
+  @@index([url])
+  @@map("scans")
+}
+
+model CrawlJob {
+  id             String    @id @default(cuid())
+  projectId      String    @map("project_id")
+  status         String    @default("pending") // pending, running, completed, failed
+  pagesTotal     Int       @default(0) @map("pages_total")
+  pagesCompleted Int       @default(0) @map("pages_completed")
+  creditsUsed    Int       @default(0) @map("credits_used")
+  startedAt      DateTime? @map("started_at")
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scans   Scan[]
+
+  @@index([projectId, createdAt])
+  @@map("crawl_jobs")
+}
+
+// ──────────────────────────────────────
+// API Keys
+// ──────────────────────────────────────
+
+model ApiKey {
+  id             String    @id @default(cuid())
+  organizationId String    @map("organization_id")
+  keyHash        String    @unique @map("key_hash")
+  label          String
+  lastUsedAt     DateTime? @map("last_used_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
