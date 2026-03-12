@@ -5,7 +5,7 @@
  * Retries failed deliveries with exponential backoff.
  */
 
-import { request } from 'undici';
+import { safeOutboundRequest } from '@/lib/safe-outbound-request';
 import { createHmac } from 'crypto';
 import { prisma } from '@aivs/db';
 
@@ -66,7 +66,7 @@ async function sendWebhook(
   const signature = createHmac('sha256', secret).update(body).digest('hex');
 
   try {
-    const res = await request(url, {
+    const res = await safeOutboundRequest(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ async function sendWebhook(
         'User-Agent': 'AIVS-Webhooks/1.0',
       },
       body,
-      signal: AbortSignal.timeout(10_000),
+      timeoutMs: 10_000,
     });
 
     await res.body.dump();

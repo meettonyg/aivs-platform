@@ -144,6 +144,7 @@ export async function GET(request: NextRequest) {
       'Content-Type': 'application/javascript',
       'Cache-Control': 'public, max-age=3600',
       'Access-Control-Allow-Origin': origin || '*',
+      Vary: 'Origin',
     },
   });
 }

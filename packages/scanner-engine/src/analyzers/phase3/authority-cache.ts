@@ -60,35 +60,138 @@ export interface SocialProfileResult {
   score: number;
 }
 
-// In-memory cache (production would use Redis)
-const authorityCache = new Map<string, CachedAuthorityData>();
 const CACHE_TTL_DAYS = 30;
+const CACHE_TTL_SECONDS = CACHE_TTL_DAYS * 24 * 60 * 60;
+const CACHE_PREFIX = 'authority-cache:';
 
-export function getCachedAuthority(domain: string): DomainAuthorityData | null {
-  const cached = authorityCache.get(domain);
+// Fallback used when Redis is unavailable in local/dev environments.
+const fallbackCache = new Map<string, CachedAuthorityData>();
+
+type RedisLike = {
+  connect: () => Promise<unknown>;
+  get: (key: string) => Promise<string | null>;
+  set: (key: string, value: string, mode: "EX", ttl: number) => Promise<unknown>;
+  del: (...keys: string[]) => Promise<unknown>;
+  keys: (pattern: string) => Promise<string[]>;
+  on: (event: string, handler: (...args: unknown[]) => void) => void;
+};
+
+let redisClient: RedisLike | null = null;
+
+function getRedisClient(): RedisLike | null {
+  if (redisClient) return redisClient;
+
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) return null;
+
+  try {
+    const RedisCtor = eval('require')('ioredis');
+    redisClient = new RedisCtor(redisUrl, {
+      maxRetriesPerRequest: 1,
+      enableReadyCheck: false,
+      lazyConnect: true,
+    }) as RedisLike;
+  } catch {
+    return null;
+  }
+
+  redisClient.on('error', () => {
+    // Redis outages should not crash scans; fallback cache remains available.
+  });
+
+  return redisClient;
+}
+
+function getCacheKey(domain: string): string {
+  return `${CACHE_PREFIX}${domain.toLowerCase().trim()}`;
+}
+
+export async function getCachedAuthority(domain: string): Promise<DomainAuthorityData | null> {
+  const key = getCacheKey(domain);
+  const redis = getRedisClient();
+
+  if (redis) {
+    try {
+      await redis.connect();
+    } catch {
+      // ignore connect races / already-connected state
+    }
+
+    try {
+      const value = await redis.get(key);
+      if (value) {
+        const parsed = JSON.parse(value) as CachedAuthorityData;
+        return parsed.data;
+      }
+    } catch {
+      // Fallback to in-memory cache below.
+    }
+  }
+
+  const cached = fallbackCache.get(key);
   if (!cached) return null;
   if (new Date(cached.expiresAt) < new Date()) {
-    authorityCache.delete(domain);
+    fallbackCache.delete(key);
     return null;
   }
   return cached.data;
 }
 
-export function setCachedAuthority(domain: string, data: DomainAuthorityData): void {
+export async function setCachedAuthority(domain: string, data: DomainAuthorityData): Promise<void> {
   const now = new Date();
-  const expires = new Date(now.getTime() + CACHE_TTL_DAYS * 24 * 60 * 60 * 1000);
-  authorityCache.set(domain, {
+  const expires = new Date(now.getTime() + CACHE_TTL_SECONDS * 1000);
+  const key = getCacheKey(domain);
+
+  const cached: CachedAuthorityData = {
     domain,
     data,
     fetchedAt: now.toISOString(),
     expiresAt: expires.toISOString(),
-  });
+  };
+
+  const redis = getRedisClient();
+  if (redis) {
+    try {
+      await redis.connect();
+    } catch {
+      // ignore connect races / already-connected state
+    }
+
+    try {
+      await redis.set(key, JSON.stringify(cached), 'EX', CACHE_TTL_SECONDS);
+    } catch {
+      // Fallback cache will still be populated.
+    }
+  }
+
+  fallbackCache.set(key, cached);
 }
 
-export function clearAuthorityCache(domain?: string): void {
+export async function clearAuthorityCache(domain?: string): Promise<void> {
+  const redis = getRedisClient();
+
   if (domain) {
-    authorityCache.delete(domain);
-  } else {
-    authorityCache.clear();
+    const key = getCacheKey(domain);
+    fallbackCache.delete(key);
+    if (redis) {
+      try {
+        await redis.del(key);
+      } catch {
+        // noop
+      }
+    }
+    return;
+  }
+
+  fallbackCache.clear();
+  if (redis) {
+    try {
+      const keys = await redis.keys(`${CACHE_PREFIX}*`);
+      if (keys.length > 0) {
+        await redis.del(keys);
+      }
+    } catch {
+      // noop
+    }
   }
 }

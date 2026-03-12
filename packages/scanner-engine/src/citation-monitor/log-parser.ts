@@ -77,6 +77,42 @@ export function parseCrawlerLogs(
   return buildReport(visits, knownBots);
 }
 
+
+
+export async function parseCrawlerLogsAsync(
+  logContent: string,
+  knownBots?: string[],
+): Promise<CrawlerLogReport> {
+  const lines = logContent.split('\n').filter(Boolean);
+  const visits: CrawlerVisit[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const match = APACHE_LOG_REGEX.exec(line) ?? NGINX_LOG_REGEX.exec(line);
+    if (!match) continue;
+
+    const [, ip, dateStr, , url, statusStr, userAgent] = match;
+    const statusCode = parseInt(statusStr, 10);
+
+    const bot = identifyBot(userAgent);
+    if (!bot) continue;
+
+    visits.push({
+      timestamp: parseLogDate(dateStr),
+      bot,
+      url,
+      statusCode,
+      userAgent,
+      ip,
+    });
+
+    if (i > 0 && i % 500 === 0) {
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    }
+  }
+
+  return buildReport(visits, knownBots);
+}
 function identifyBot(userAgent: string): string | null {
   for (const [name, pattern] of Object.entries(AI_BOT_PATTERNS)) {
     if (pattern.test(userAgent)) return name;

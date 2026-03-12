@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@aivs/db';
 import { auth } from '@/lib/auth';
-import { parseCrawlerLogs } from '@aivs/scanner-engine';
+import { parseCrawlerLogsAsync } from '@aivs/scanner-engine';
 
 /**
  * POST /api/projects/[id]/crawler-logs — Upload and analyze server access logs
@@ -63,7 +63,7 @@ export async function POST(
       );
     }
 
-    const report = parseCrawlerLogs(logContent);
+    const report = await parseCrawlerLogsAsync(logContent);
 
     return NextResponse.json({
       success: true,

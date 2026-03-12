@@ -16,7 +16,7 @@ import {
 
 export async function analyzeDomainAuthority(domain: string): Promise<DomainAuthorityData> {
   // Check cache first
-  const cached = getCachedAuthority(domain);
+  const cached = await getCachedAuthority(domain);
   if (cached) return cached;
 
   const cleanDomain = domain.replace(/^www\./, '');
@@ -59,7 +59,7 @@ export async function analyzeDomainAuthority(domain: string): Promise<DomainAuth
   };
 
   // Cache the result
-  setCachedAuthority(domain, result);
+  await setCachedAuthority(domain, result);
 
   return result;
 }

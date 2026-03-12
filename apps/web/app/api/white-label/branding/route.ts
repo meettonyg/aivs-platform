@@ -124,9 +124,14 @@ export async function PUT(request: NextRequest) {
 
     // Full white-label features (Agency+)
     if (body.customDomain && planLimits.hasFullWhiteLabel) {
+      const requestedDomain =
+        typeof body.customDomain.domain === 'string'
+          ? body.customDomain.domain.trim().toLowerCase()
+          : currentSettings.customDomain?.domain ?? '';
+
       updatedSettings.customDomain = {
         ...(currentSettings.customDomain ?? { domain: '', verified: false, sslStatus: 'pending' as const }),
-        ...body.customDomain,
+        domain: requestedDomain,
       };
     }
 

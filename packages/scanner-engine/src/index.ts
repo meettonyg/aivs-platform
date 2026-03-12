@@ -67,7 +67,7 @@ export { analyzeConversationalAlignment } from './analyzers/phase4/conversationa
 export type { ConversationalAlignmentResult } from './analyzers/phase4/conversational-alignment';
 
 // Citation Monitoring
-export { parseCrawlerLogs } from './citation-monitor/log-parser';
+export { parseCrawlerLogs, parseCrawlerLogsAsync } from './citation-monitor/log-parser';
 export type { CrawlerLogReport } from './citation-monitor/log-parser';
 export { checkScoreAlerts, DEFAULT_ALERT_CONFIG } from './citation-monitor/score-alerts';
 export type { ScoreAlert, AlertConfig } from './citation-monitor/score-alerts';
