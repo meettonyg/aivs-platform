@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@aivs/db';
-import { randomBytes, pbkdf2Sync } from 'crypto';
-
-function hashPassword(password: string): string {
-  const salt = randomBytes(16).toString('hex');
-  const hash = pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
-  return `${salt}:${hash}`;
-}
+import { hashPassword } from '@/lib/crypto';
 
 function slugify(text: string): string {
   return text
@@ -49,7 +43,7 @@ export async function POST(request: NextRequest) {
         data: {
           name,
           email,
-          passwordHash: hashPassword(password),
+          passwordHash: await hashPassword(password),
         },
       });
 
