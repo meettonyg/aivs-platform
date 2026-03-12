@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       if (normalizedOrigin === normalizedAllowed) return true;
 
       // Domain/subdomain match supports entries like "example.com"
-      if (originHost === normalizedAllowed || originHost.endsWith(`.${normalizedAllowed}`)) {
+      if (originHost === normalizedAllowed || (normalizedAllowed.includes('.') && originHost.endsWith(`.${normalizedAllowed}`))) {
         return true;
       }
 
