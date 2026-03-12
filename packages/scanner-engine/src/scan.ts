@@ -21,7 +21,7 @@ import { analyzeContentQuality } from './analyzers/phase2/content-quality';
 import { analyzeBotBlocking } from './analyzers/phase2/bot-blocking';
 import { generateFixes } from './fixes';
 import { generateCitationSimulation } from './citation-sim';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 
 /**
  * Scoring weights — extracted from scanner-engine.php lines 184-192.
@@ -297,7 +297,10 @@ export async function scanUrl(
   const pageType = detectPageType($, options?.pageType);
 
   // 13. Generate hash
-  const hash = createHash('md5').update(normalizedUrl + Date.now()).digest('hex').slice(0, 12);
+  const hash = createHash('md5')
+    .update(`${normalizedUrl}:${Date.now()}:${randomBytes(6).toString('hex')}`)
+    .digest('hex')
+    .slice(0, 12);
 
   return {
     url: normalizedUrl,
