@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     const toImport = domains.slice(0, slotsRemaining);
 
-    const { created, skipped } = await prisma.$transaction(async (tx) => {
+    const { created, skipped } = await prisma.$transaction(async (tx: any) => {
       const createdProjects: { id: string; domain: string; name: string }[] = [];
       const skippedDomains: { domain: string; reason: string }[] = [];
 

@@ -38,6 +38,20 @@ export interface LayerScores {
   extractability: number;
 }
 
+
+
+export interface CitationSimulationResult {
+  overall: number;
+  platforms: {
+    name: string;
+    score: number;
+    confidence: 'high' | 'medium' | 'low';
+    reasoning: string;
+  }[];
+  strengths: string[];
+  weaknesses: string[];
+}
+
 export interface ScanFix {
   /** Human-readable fix description */
   description: string;
@@ -67,7 +81,7 @@ export interface ScanResult {
   /** Recommended fixes, sorted by priority */
   fixes: ScanFix[];
   /** Citation simulation data */
-  citationSimulation: Record<string, unknown>;
+  citationSimulation: CitationSimulationResult;
   /** robots.txt analysis */
   robotsData: Record<string, unknown>;
   /** Detected page type */

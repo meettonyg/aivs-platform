@@ -4,6 +4,24 @@ import { auth } from '@/lib/auth';
 import { computeSiteScore } from '@aivs/scanner-engine';
 import type { ScanFix } from '@aivs/types';
 
+
+function isScanFix(value: unknown): value is ScanFix {
+  if (!value || typeof value !== 'object') return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.description === 'string' &&
+    typeof record.points === 'number' &&
+    (record.layer === 'access' || record.layer === 'understanding' || record.layer === 'extractability') &&
+    typeof record.factorId === 'string' &&
+    typeof record.priority === 'number'
+  );
+}
+
+function parseScanFixes(value: unknown): ScanFix[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(isScanFix);
+}
+
 /**
  * GET /api/projects/[id]/site-score — Get aggregated site-level score
  */
@@ -65,7 +83,7 @@ export async function GET(
         tier: s.tier,
         pageType: s.pageType ?? 'page',
         subScores: (s.subScores ?? {}) as Record<string, number>,
-        fixes: (s.fixes ?? []) as ScanFix[],
+        fixes: parseScanFixes(s.fixes),
       })),
     );
 

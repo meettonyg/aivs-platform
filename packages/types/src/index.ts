@@ -1,4 +1,4 @@
-export type { ScanResult, ScanOptions, SubScores, LayerScores } from './scan';
+export type { ScanResult, ScanOptions, SubScores, LayerScores, CitationSimulationResult } from './scan';
 export type { ScanFix } from './scan';
 export type { Project } from './project';
 export type { Subscription, PlanTier } from './subscription';
@@ -14,4 +14,4 @@ export type {
   EmbedWidgetConfig,
 } from './white-label';
 export { DEFAULT_BRANDING } from './white-label';
-export type { PlatformVisibility, PlatformVisibilityResult } from './platform-visibility';
+export type { PlatformVisibility, PlatformVisibilityResult, PlatformSignal } from './platform-visibility';

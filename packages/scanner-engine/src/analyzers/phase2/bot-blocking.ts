@@ -42,7 +42,6 @@ export async function analyzeBotBlocking(url: string): Promise<BotBlockingResult
       method: 'GET',
       headers: { 'User-Agent': BROWSER_UA },
       signal: AbortSignal.timeout(10_000),
-      maxRedirections: 5,
     });
     browserStatus = res.statusCode;
     browserAccessible = browserStatus >= 200 && browserStatus < 400;
@@ -59,7 +58,6 @@ export async function analyzeBotBlocking(url: string): Promise<BotBlockingResult
         method: 'GET',
         headers: { 'User-Agent': ua },
         signal: AbortSignal.timeout(10_000),
-        maxRedirections: 5,
       });
 
       const status = res.statusCode;

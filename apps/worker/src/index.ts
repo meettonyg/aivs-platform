@@ -247,7 +247,7 @@ const crawlWorker = new Worker(
             score: result.score,
             tier: result.tier,
             pageType: result.pageType,
-            subScores: result.subScores as Record<string, number>,
+            subScores: result.subScores as unknown as Record<string, number>,
             fixes: result.fixes,
           });
 

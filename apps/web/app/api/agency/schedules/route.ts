@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@aivs/db';
 import { auth } from '@/lib/auth';
-import { crawlQueue } from '@/lib/queue';
+import { getCrawlQueue } from '@/lib/queue';
 
 /**
  * POST /api/agency/schedules — Set scan schedule for a project
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
     for (const project of projects) {
       if (project.organization.crawlCreditsRemaining <= 0) continue;
 
-      await crawlQueue.add('crawl', {
+      await getCrawlQueue().add('crawl', {
         projectId: project.id,
         organizationId: project.organizationId,
         maxPages: 50,

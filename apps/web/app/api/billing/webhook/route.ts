@@ -2,18 +2,34 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@aivs/db';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia' as Stripe.LatestApiVersion,
-});
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-
 const PLAN_CREDITS: Record<string, { tier: string; credits: number }> = {
   [process.env.STRIPE_PRO_PRICE_ID ?? 'pro']: { tier: 'pro', credits: 5000 },
   [process.env.STRIPE_AGENCY_PRICE_ID ?? 'agency']: { tier: 'agency', credits: 25000 },
 };
 
+let stripeInstance: Stripe | null = null;
+
+function getStripe(): Stripe {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error('STRIPE_SECRET_KEY is not configured');
+  }
+
+  if (!stripeInstance) {
+    stripeInstance = new Stripe(secretKey, {
+      apiVersion: '2025-02-24.acacia' as Stripe.LatestApiVersion,
+    });
+  }
+
+  return stripeInstance;
+}
+
 export async function POST(request: NextRequest) {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
+  }
+
   const body = await request.text();
   const signature = request.headers.get('stripe-signature');
 
@@ -23,7 +39,7 @@ export async function POST(request: NextRequest) {
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
   } catch {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }

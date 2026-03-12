@@ -9,7 +9,8 @@
     "test": "turbo test",
     "db:migrate": "turbo db:migrate --filter=@aivs/db",
     "db:generate": "turbo db:generate --filter=@aivs/db",
-    "db:studio": "pnpm --filter @aivs/db exec prisma studio"
+    "db:studio": "pnpm --filter @aivs/db exec prisma studio",
+    "postinstall": "pnpm --filter @aivs/db db:generate"
   },
   "devDependencies": {
     "turbo": "^2.4.0",
@@ -22,5 +23,8 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "prisma": {
+    "schema": "packages/db/prisma/schema.prisma"
+  }
 }
