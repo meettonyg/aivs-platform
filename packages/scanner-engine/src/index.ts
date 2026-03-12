@@ -40,6 +40,22 @@ export type { AuthorEeatResult } from './analyzers/phase2/author-eeat';
 export { analyzeContentQuality } from './analyzers/phase2/content-quality';
 export type { ContentQualityResult } from './analyzers/phase2/content-quality';
 
+// Phase 3 Analyzers — Off-site Authority
+export { analyzeDomainAuthority } from './analyzers/phase3/domain-authority';
+export { analyzeKnowledgeGraph } from './analyzers/phase3/knowledge-graph';
+export { analyzeWikidata } from './analyzers/phase3/wikidata';
+export { analyzeBacklinks } from './analyzers/phase3/backlinks';
+export { getCachedAuthority, setCachedAuthority, clearAuthorityCache } from './analyzers/phase3/authority-cache';
+export type {
+  DomainAuthorityData,
+  KnowledgeGraphResult,
+  WikidataResult,
+  BacklinkResult,
+} from './analyzers/phase3/authority-cache';
+
+// Platform Visibility Estimates
+export { estimatePlatformVisibility } from './platform-visibility';
+
 // Crawl utilities
 export { discoverPages } from './crawl/discover';
 export { computeSiteScore } from './crawl/site-score';

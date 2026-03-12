@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       where: { organizationId: org.id },
     });
 
-    const maxDomains = planLimits.domains;
+    const maxDomains = planLimits.maxDomains;
     const slotsRemaining = maxDomains - existingCount;
 
     if (slotsRemaining <= 0) {
