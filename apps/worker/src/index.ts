@@ -371,140 +371,6 @@ const crawlWorker = new Worker(
 );
 
 // ──────────────────────────────────────
-// Scheduled scan worker — cron-triggered re-scans
-// ──────────────────────────────────────
-const scheduledWorker = new Worker(
-  'scheduled-scan',
-  async (job: Job) => {
-    const { projectId, organizationId } = job.data;
-
-    console.log(`[scheduled] Running scheduled scan for project ${projectId}`);
-
-    const project = await prisma.project.findUniqueOrThrow({
-      where: { id: projectId },
-    });
-
-    const org = await prisma.organization.findUniqueOrThrow({
-      where: { id: organizationId },
-    });
-
-    if (org.crawlCreditsRemaining <= 0) {
-      console.log(`[scheduled] Skipping — no credits remaining for org ${organizationId}`);
-      return { skipped: true, reason: 'no_credits' };
-    }
-
-    // Run incremental crawl
-    const maxPages = Math.min(50, org.crawlCreditsRemaining);
-    const discoveredPages = await discoverPages(project.domain, { maxPages });
-
-    const crawlJob = await prisma.crawlJob.create({
-      data: {
-        projectId,
-        status: 'running',
-        isIncremental: true,
-        startedAt: new Date(),
-      },
-    });
-
-    // Load existing content hashes
-    const existingScans = await prisma.scan.findMany({
-      where: { projectId },
-      select: { url: true, contentHash: true, score: true },
-      orderBy: { createdAt: 'desc' },
-      distinct: ['url'],
-    });
-    const existingHashes = new Map(existingScans.map((s) => [s.url, s.contentHash]));
-    const prevScores = new Map(existingScans.map((s) => [s.url, s.score]));
-
-    let pagesCompleted = 0;
-    let pagesSkipped = 0;
-
-    for (const page of discoveredPages) {
-      try {
-        const result = await scanUrl(page.url, { deepScan: false });
-        const contentHash = createHash('md5')
-          .update(JSON.stringify(result.extraction ?? {}))
-          .digest('hex');
-
-        if (existingHashes.get(page.url) === contentHash) {
-          pagesSkipped++;
-          continue;
-        }
-
-        await prisma.scan.create({
-          data: {
-            projectId,
-            url: result.url,
-            hash: result.hash,
-            score: result.score,
-            tier: result.tier,
-            subScores: result.subScores as object,
-            layerScores: result.layerScores as object,
-            extraction: result.extraction as object,
-            fixes: result.fixes as object[],
-            citationSimulation: result.citationSimulation as object,
-            robotsData: result.robotsData as object,
-            pageType: result.pageType,
-            contentHash,
-            factorVersion: 2,
-            crawlJobId: crawlJob.id,
-          },
-        });
-
-        await prisma.scanHistory.create({
-          data: {
-            projectId,
-            url: result.url,
-            score: result.score,
-            prevScore: prevScores.get(result.url) ?? null,
-            subScores: result.subScores as object,
-            scannedAt: new Date(),
-          },
-        });
-
-        pagesCompleted++;
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      } catch (err) {
-        console.error(`[scheduled] Failed: ${page.url}`, err);
-      }
-    }
-
-    // Update credits and crawl job
-    if (pagesCompleted > 0) {
-      await prisma.organization.update({
-        where: { id: organizationId },
-        data: { crawlCreditsRemaining: { decrement: pagesCompleted } },
-      });
-    }
-
-    await prisma.crawlJob.update({
-      where: { id: crawlJob.id },
-      data: {
-        status: 'completed',
-        pagesTotal: pagesCompleted + pagesSkipped,
-        pagesCompleted,
-        pagesSkipped,
-        creditsUsed: pagesCompleted,
-        completedAt: new Date(),
-      },
-    });
-
-    await prisma.project.update({
-      where: { id: projectId },
-      data: { lastScheduledAt: new Date() },
-    });
-
-    console.log(`[scheduled] Done: ${pagesCompleted} scanned, ${pagesSkipped} skipped for ${project.domain}`);
-
-    return { pagesCompleted, pagesSkipped };
-  },
-  {
-    connection,
-    concurrency: 1,
-  },
-);
-
-// ──────────────────────────────────────
 // Event handlers
 // ──────────────────────────────────────
 scanWorker.on('completed', (job) => {
@@ -523,14 +389,6 @@ crawlWorker.on('failed', (job, err) => {
   console.error(`[crawl] Job ${job?.id} failed:`, err.message);
 });
 
-scheduledWorker.on('completed', (job) => {
-  console.log(`[scheduled] Job ${job.id} completed`);
-});
-
-scheduledWorker.on('failed', (job, err) => {
-  console.error(`[scheduled] Job ${job?.id} failed:`, err.message);
-});
-
 console.log('AIVS Worker ready. Waiting for jobs...');
 
 // Graceful shutdown
@@ -538,7 +396,6 @@ async function shutdown() {
   console.log('Shutting down gracefully...');
   await scanWorker.close();
   await crawlWorker.close();
-  await scheduledWorker.close();
   await prisma.$disconnect();
   process.exit(0);
 }
