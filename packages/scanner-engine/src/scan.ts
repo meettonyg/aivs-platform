@@ -96,12 +96,23 @@ export async function scanUrl(
   } as any);
   const ttfbMs = Date.now() - startTime;
 
+  if (statusCode >= 300 && statusCode < 400) {
+    // Redirect was not followed (limit reached or unsupported)
+    const location = headers['location'];
+    await body.dump();
+    throw new Error(`Redirect not followed (HTTP ${statusCode} → ${location ?? 'unknown'})`);
+  }
+
   if (statusCode < 200 || statusCode >= 400) {
+    await body.dump();
     throw new Error(`HTTP ${statusCode} fetching ${normalizedUrl}`);
   }
 
   const contentType = String(headers['content-type'] ?? '');
-  if (!contentType.includes('text/html') && !contentType.includes('application/xhtml')) {
+  // Only reject if content-type is explicitly set to something non-HTML.
+  // Empty/missing content-type is allowed — many servers omit it for HTML responses.
+  if (contentType && !contentType.includes('text/html') && !contentType.includes('application/xhtml')) {
+    await body.dump();
     throw new Error(`Non-HTML content type: ${contentType}`);
   }
 
