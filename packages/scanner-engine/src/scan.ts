@@ -85,13 +85,15 @@ export async function scanUrl(
   const startTime = Date.now();
   const { statusCode, headers, body } = await request(normalizedUrl, {
     method: 'GET',
+    maxRedirections: 5,
     headers: {
       'User-Agent': 'Mozilla/5.0 (compatible; AIVisibilityScanner/1.0)',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.5',
     },
     signal: AbortSignal.timeout(FETCH_TIMEOUT),
-  });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
   const ttfbMs = Date.now() - startTime;
 
   if (statusCode < 200 || statusCode >= 400) {
@@ -117,8 +119,10 @@ export async function scanUrl(
     const robotsUrl = `${parsedUrl.protocol}//${parsedUrl.host}/robots.txt`;
     const robotsRes = await request(robotsUrl, {
       method: 'GET',
+      maxRedirections: 5,
       signal: AbortSignal.timeout(5000),
-    });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
     if (robotsRes.statusCode === 200) {
       robotsTxt = await robotsRes.body.text();
     } else {
