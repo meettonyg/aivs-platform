@@ -85,6 +85,7 @@ export async function scanUrl(
   const startTime = Date.now();
   const { statusCode, headers, body } = await request(normalizedUrl, {
     method: 'GET',
+    maxRedirections: 5,
     headers: {
       'User-Agent': 'Mozilla/5.0 (compatible; AIVisibilityScanner/1.0)',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -117,6 +118,7 @@ export async function scanUrl(
     const robotsUrl = `${parsedUrl.protocol}//${parsedUrl.host}/robots.txt`;
     const robotsRes = await request(robotsUrl, {
       method: 'GET',
+      maxRedirections: 5,
       signal: AbortSignal.timeout(5000),
     });
     if (robotsRes.statusCode === 200) {
