@@ -4,6 +4,12 @@
   "private": true,
   "main": "dist/client.js",
   "types": "dist/client.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/client.d.ts",
+      "default": "./src/client.ts"
+    }
+  },
   "scripts": {
     "build": "tsup src/client.ts --format cjs,esm --dts",
     "dev": "tsup src/client.ts --format cjs,esm --dts --watch",
