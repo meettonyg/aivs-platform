@@ -34,6 +34,26 @@ export const BROWSER_HEADERS: Record<string, string> = {
 };
 
 /**
+ * Extract Set-Cookie values from response headers and format them
+ * as a single Cookie header string for subsequent requests.
+ * WAFs like Akamai set tracking cookies (ak_bmsc, bm_sz) on 403
+ * responses and require them on retry.
+ */
+export function extractCookies(
+  headers: Record<string, string | string[] | undefined>,
+): string | undefined {
+  const raw = headers['set-cookie'];
+  if (!raw) return undefined;
+
+  const values = Array.isArray(raw) ? raw : [raw];
+  const cookies = values
+    .map((v) => v.split(';')[0].trim())
+    .filter(Boolean);
+
+  return cookies.length > 0 ? cookies.join('; ') : undefined;
+}
+
+/**
  * Pre-configured `request` wrapper that follows up to 5 redirects.
  * Mirrors undici's `request()` signature (method defaults to GET).
  */
