@@ -100,7 +100,7 @@ async function fetchSitemapUrls(baseUrl: string): Promise<{ url: string; priorit
     const robotsRes = await request(`${baseUrl}/robots.txt`, {
       maxRedirections: 5,
       signal: AbortSignal.timeout(5000),
-    });
+    } as any);
     if (robotsRes.statusCode === 200) {
       const robotsTxt = await robotsRes.body.text();
       const sitemapMatches = robotsTxt.match(/^Sitemap:\s*(.+)$/gim);
@@ -124,7 +124,7 @@ async function fetchSitemapUrls(baseUrl: string): Promise<{ url: string; priorit
       const res = await request(sitemapUrl, {
         maxRedirections: 5,
         signal: AbortSignal.timeout(10_000),
-      });
+      } as any);
       if (res.statusCode !== 200) {
         await res.body.dump();
         continue;
@@ -140,7 +140,7 @@ async function fetchSitemapUrls(baseUrl: string): Promise<{ url: string; priorit
             const subRes = await request(indexUrl, {
               maxRedirections: 5,
               signal: AbortSignal.timeout(10_000),
-            });
+            } as any);
             if (subRes.statusCode === 200) {
               const subXml = await subRes.body.text();
               urls.push(...extractUrlsFromSitemap(subXml));
@@ -198,7 +198,7 @@ async function discoverLinksFromPage(pageUrl: string, domain: string): Promise<s
       'User-Agent': 'Mozilla/5.0 (compatible; AIVisibilityScanner/1.0)',
     },
     signal: AbortSignal.timeout(10_000),
-  });
+  } as any);
 
   if (res.statusCode < 200 || res.statusCode >= 400) {
     await res.body.dump();
