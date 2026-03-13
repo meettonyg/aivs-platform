@@ -22,14 +22,17 @@ function withCors(request: NextRequest, response: NextResponse): NextResponse {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { url, projectId, pageType } = body;
+    const { url: rawUrl, projectId, pageType } = body;
 
-    if (!url || typeof url !== 'string') {
+    if (!rawUrl || typeof rawUrl !== 'string') {
       return withCors(request, NextResponse.json(
         { success: false, error: { code: 'VALIDATION', message: 'URL is required' } },
         { status: 400 },
       ));
     }
+
+    // Auto-prepend https:// if no protocol provided
+    const url = /^https?:\/\//i.test(rawUrl.trim()) ? rawUrl.trim() : `https://${rawUrl.trim()}`;
 
     // Validate URL format
     try {
@@ -126,13 +129,16 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const url = request.nextUrl.searchParams.get('url');
-  if (!url) {
+  const rawUrl = request.nextUrl.searchParams.get('url');
+  if (!rawUrl) {
     return withCors(request, NextResponse.json(
       { success: false, error: { code: 'VALIDATION', message: 'URL parameter required' } },
       { status: 400 },
     ));
   }
+
+  // Auto-prepend https:// if no protocol provided
+  const url = /^https?:\/\//i.test(rawUrl.trim()) ? rawUrl.trim() : `https://${rawUrl.trim()}`;
 
   try {
     const result = await scanUrl(url);

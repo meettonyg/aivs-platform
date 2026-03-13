@@ -25,8 +25,13 @@ export default function HomePage() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const url = formData.get('url') as string;
+    let url = (formData.get('url') as string).trim();
     if (!url) return;
+
+    // Auto-prepend https:// if no protocol provided
+    if (!/^https?:\/\//i.test(url)) {
+      url = `https://${url}`;
+    }
 
     setIsScanning(true);
     setError(null);
@@ -92,9 +97,9 @@ export default function HomePage() {
           {/* Free scanner */}
           <form onSubmit={handleSubmit} className="mx-auto mt-10 flex max-w-xl gap-3">
             <input
-              type="url"
+              type="text"
               name="url"
-              placeholder="Enter a URL to scan..."
+              placeholder="Enter a domain to scan (e.g. adp.com)"
               required
               disabled={isScanning}
               className="flex-1 rounded-lg border border-gray-300 px-4 py-3 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-60"
