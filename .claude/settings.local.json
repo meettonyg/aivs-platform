@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_lxEUJ4sHLDM1@ep-wispy-sky-ad3fnc4r-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" pnpm db:migrate)",
+      "Bash(export PATH=\"/c/Users/seoge/AppData/Local/pnpm:$PATH\")",
+      "Read(//c/Users/seoge/AppData/Local/**)",
+      "Read(//c/Users/seoge/AppData/Roaming/npm/**)",
+      "Bash(echo \"PATH=$PATH\")",
+      "Bash(npx prisma:*)",
+      "Bash(npx prisma@6.4.0 migrate deploy --schema=packages/db/prisma/schema.prisma)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_lxEUJ4sHLDM1@ep-wispy-sky-ad3fnc4r-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require\" npx prisma@6.4.0 migrate deploy --schema=packages/db/prisma/schema.prisma)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_lxEUJ4sHLDM1@ep-wispy-sky-ad3fnc4r-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require\" npx prisma@6.4.0 db push --schema=packages/db/prisma/schema.prisma)",
+      "Bash(openssl rand:*)",
+      "Bash(pnpm install:*)",
+      "Bash(npm --version)",
+      "Bash(npx pnpm:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsup:*)",
+      "Bash(pnpm --filter @aivs/scanner-engine build)"
+    ]
+  }
+}
