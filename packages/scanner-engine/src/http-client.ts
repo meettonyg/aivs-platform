@@ -14,12 +14,11 @@ const redirectAgent = new Agent().compose(
 
 /**
  * Pre-configured `request` wrapper that follows up to 5 redirects.
+ * Mirrors undici's `request()` signature (method defaults to GET).
  */
 export function request(
   url: string | URL,
-  options?: Omit<Dispatcher.RequestOptions, 'origin' | 'path'> & {
-    signal?: AbortSignal;
-  },
+  options?: { signal?: AbortSignal } & Record<string, unknown>,
 ) {
   return undiciRequest(url, {
     ...options,
