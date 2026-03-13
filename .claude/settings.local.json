@@ -16,7 +16,10 @@
       "Bash(npx pnpm:*)",
       "Bash(npm install:*)",
       "Bash(npx tsup:*)",
-      "Bash(pnpm --filter @aivs/scanner-engine build)"
+      "Bash(pnpm --filter @aivs/scanner-engine build)",
+      "Bash(gh pr:*)",
+      "Bash(where gh:*)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_lxEUJ4sHLDM1@ep-wispy-sky-ad3fnc4r-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" pnpm --filter @aivs/db db:push)"
     ]
   }
 }
