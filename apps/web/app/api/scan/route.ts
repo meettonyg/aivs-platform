@@ -136,7 +136,26 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await scanUrl(url);
-    return withCors(request, NextResponse.json({ success: true, data: result }));
+
+    // Save to database
+    const scan = await prisma.scan.create({
+      data: {
+        projectId: null,
+        url: result.url,
+        hash: result.hash,
+        score: result.score,
+        tier: result.tier,
+        subScores: result.subScores as object,
+        layerScores: result.layerScores as object,
+        extraction: result.extraction as object,
+        fixes: result.fixes as object[],
+        citationSimulation: result.citationSimulation as object,
+        robotsData: result.robotsData as object,
+        pageType: result.pageType,
+      },
+    });
+
+    return withCors(request, NextResponse.json({ success: true, data: { ...result, id: scan.id } }));
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Scan failed';
     return withCors(request, NextResponse.json(
