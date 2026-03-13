@@ -191,7 +191,7 @@ async function discoverLinksFromPage(pageUrl: string, domain: string): Promise<s
   const res = await request(pageUrl, {
     method: 'GET',
     headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; AIVisibilityScanner/1.0)',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     },
     signal: AbortSignal.timeout(10_000),
   });
