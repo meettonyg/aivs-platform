@@ -5,8 +5,7 @@
  * Simulates requests as various AI bot user agents to detect blocking.
  */
 
-import { request } from 'undici';
-import { BROWSER_HEADERS } from '../../http-client';
+import { request, BROWSER_HEADERS, extractCookies } from '../../http-client';
 
 export interface BotBlockingResult {
   score: number;
@@ -33,16 +32,29 @@ export async function analyzeBotBlocking(url: string): Promise<BotBlockingResult
   const details: Record<string, { status: number; blocked: boolean }> = {};
   const blockedBots: string[] = [];
 
-  // First, fetch as browser to establish baseline
+  // First, fetch as browser to establish baseline (with WAF cookie retry)
   let browserAccessible = false;
   let browserStatus = 0;
   try {
-    const res = await request(url, {
+    let res = await request(url, {
       method: 'GET',
       headers: { ...BROWSER_HEADERS },
       signal: AbortSignal.timeout(10_000),
     });
     browserStatus = res.statusCode;
+    if (browserStatus === 403) {
+      const cookies = extractCookies(res.headers as Record<string, string | string[] | undefined>);
+      await res.body.dump();
+      await new Promise((r) => setTimeout(r, 500));
+      const extra: Record<string, string> = {};
+      if (cookies) extra['Cookie'] = cookies;
+      res = await request(url, {
+        method: 'GET',
+        headers: { ...BROWSER_HEADERS, ...extra },
+        signal: AbortSignal.timeout(10_000),
+      });
+      browserStatus = res.statusCode;
+    }
     browserAccessible = browserStatus >= 200 && browserStatus < 400;
     await res.body.dump();
   } catch {

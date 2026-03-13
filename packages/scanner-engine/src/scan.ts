@@ -4,7 +4,7 @@
  */
 
 import * as cheerio from 'cheerio';
-import { request, BROWSER_HEADERS, BROWSER_UA } from './http-client';
+import { request, BROWSER_HEADERS, BROWSER_UA, extractCookies } from './http-client';
 import type { ScanResult, ScanOptions, SubScores, LayerScores } from '@aivs/types';
 import { getTier } from './tiers';
 import { analyzeSchema } from './analyzers/schema';
@@ -87,10 +87,10 @@ export async function scanUrl(
   let headers: Record<string, string | string[] | undefined>;
   let body: import('undici').Dispatcher.ResponseData['body'];
 
-  const fetchPage = async () => {
+  const fetchPage = async (extraHeaders?: Record<string, string>) => {
     return request(normalizedUrl, {
       method: 'GET',
-      headers: { ...BROWSER_HEADERS },
+      headers: { ...BROWSER_HEADERS, ...extraHeaders },
       signal: AbortSignal.timeout(FETCH_TIMEOUT),
     });
   };
@@ -100,10 +100,16 @@ export async function scanUrl(
   headers = res.headers;
   body = res.body;
 
-  // Retry once on 403 — some WAFs pass on a second attempt with proper headers
-  if (statusCode === 403) {
+  // Retry up to 2 times on 403 — WAFs like Akamai set tracking cookies on the
+  // 403 response and expect them back.  A short delay between attempts also
+  // helps pass timing-based bot detection.
+  for (let attempt = 0; attempt < 2 && statusCode === 403; attempt++) {
+    const cookies = extractCookies(headers as Record<string, string | string[] | undefined>);
     await body.dump();
-    res = await fetchPage();
+    await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+    const extra: Record<string, string> = {};
+    if (cookies) extra['Cookie'] = cookies;
+    res = await fetchPage(extra);
     statusCode = res.statusCode;
     headers = res.headers;
     body = res.body;
