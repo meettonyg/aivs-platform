@@ -10,6 +10,7 @@
     "db:migrate": "turbo db:migrate --filter=@aivs/db",
     "db:generate": "turbo db:generate --filter=@aivs/db",
     "db:studio": "pnpm --filter @aivs/db exec prisma studio",
+    "db:promote-admin": "pnpm --filter @aivs/db db:promote-admin",
     "postinstall": "pnpm --filter @aivs/db db:generate"
   },
   "devDependencies": {

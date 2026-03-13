@@ -17,6 +17,7 @@ model User {
   name          String?
   passwordHash  String?   @map("password_hash")
   image         String?
+  role          String    @default("user") // user | admin | superadmin
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
@@ -239,4 +240,21 @@ model Alert {
 
   @@index([organizationId, readAt, createdAt])
   @@map("alerts")
+}
+
+// ──────────────────────────────────────
+// Platform Settings (Admin)
+// ──────────────────────────────────────
+
+model PlatformSettings {
+  id                  String   @id @default("singleton")
+  defaultCrawlCredits Int      @default(5) @map("default_crawl_credits")
+  defaultRateLimit    Int      @default(100) @map("default_rate_limit")
+  featureFlags        Json     @default("{}") @map("feature_flags")
+  maintenanceMode     Boolean  @default(false) @map("maintenance_mode")
+  systemEmailFrom     String?  @map("system_email_from")
+  systemEmailReplyTo  String?  @map("system_email_reply_to")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_settings")
 }

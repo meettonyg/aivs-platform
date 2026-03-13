@@ -1,12 +1,16 @@
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { ImpersonationBanner } from '@/app/admin/_components/impersonation-banner';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   if (!session?.user) {
     redirect('/auth/login');
   }
+
+  const user = session.user as { email?: string | null; role?: string; isImpersonating?: boolean };
+  const isAdmin = user.role === 'superadmin' || user.role === 'admin';
 
   return (
     <div className="flex min-h-screen">
@@ -21,11 +25,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <NavLink href="/dashboard">Dashboard</NavLink>
           <NavLink href="/dashboard/projects">Projects</NavLink>
           <NavLink href="/dashboard/settings">Settings</NavLink>
+          {isAdmin && (
+            <NavLink href="/admin">Admin Panel</NavLink>
+          )}
         </nav>
       </aside>
 
       {/* Main content */}
       <div className="flex flex-1 flex-col">
+        {user.isImpersonating && <ImpersonationBanner email={user.email ?? 'unknown'} />}
         <header className="flex h-16 items-center justify-between border-b bg-white px-6">
           <h2 className="font-semibold text-gray-900">AI Visibility Scanner</h2>
           <div className="flex items-center gap-4">
