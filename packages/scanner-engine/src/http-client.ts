@@ -23,5 +23,5 @@ export function request(
   return undiciRequest(url, {
     ...options,
     dispatcher: redirectAgent,
-  } as Dispatcher.RequestOptions);
+  } as unknown as Dispatcher.RequestOptions);
 }
