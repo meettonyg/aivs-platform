@@ -13,7 +13,7 @@
     }
   },
   "scripts": {
-    "build": "tsup src/client.ts --format cjs,esm --dts",
+    "build": "prisma generate && tsup src/client.ts --format cjs,esm --dts --external @prisma/client",
     "dev": "tsup src/client.ts --format cjs,esm --dts --watch",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
