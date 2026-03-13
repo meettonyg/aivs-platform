@@ -1,0 +1,15 @@
+export const SUB_SCORE_LABELS: Record<string, { label: string; layer: string }> = {
+  crawlAccess: { label: 'Crawl Access', layer: 'Layer 1' },
+  botBlocking: { label: 'Bot Blocking', layer: 'Layer 1' },
+  feed: { label: 'Feed & Discovery', layer: 'Layer 1' },
+  schema: { label: 'Schema Completeness', layer: 'Layer 2' },
+  schemaAccuracy: { label: 'Schema Accuracy', layer: 'Layer 2' },
+  entity: { label: 'Entity Density', layer: 'Layer 2' },
+  structure: { label: 'Content Structure', layer: 'Layer 2' },
+  contentRichness: { label: 'Content Richness', layer: 'Layer 2' },
+  faq: { label: 'FAQ & Answer Coverage', layer: 'Layer 3' },
+  summary: { label: 'Summary Presence', layer: 'Layer 3' },
+  speakable: { label: 'Speakable Markup', layer: 'Layer 3' },
+  contentQuality: { label: 'Content Quality', layer: 'Layer 3' },
+  authorEeat: { label: 'Author E-E-A-T', layer: 'Layer 3' },
+};

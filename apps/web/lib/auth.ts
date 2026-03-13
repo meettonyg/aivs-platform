@@ -5,8 +5,11 @@ import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@aivs/db';
 import { verifyPassword } from '@/lib/crypto';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const adapter = PrismaAdapter(prisma as any);
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma) as never,
+  adapter,
   session: { strategy: 'jwt' },
   pages: {
     signIn: '/auth/login',

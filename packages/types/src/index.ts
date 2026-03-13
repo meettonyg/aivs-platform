@@ -15,3 +15,5 @@ export type {
 } from './white-label';
 export { DEFAULT_BRANDING } from './white-label';
 export type { PlatformVisibility, PlatformVisibilityResult, PlatformSignal } from './platform-visibility';
+export type { TierConfig } from './tiers';
+export { TIER_CONFIG, getTier, LAYER_CONFIG } from './tiers';
