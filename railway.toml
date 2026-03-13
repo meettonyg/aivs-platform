@@ -1,0 +1,5 @@
+[build]
+buildCommand = "pnpm --filter @aivs/worker... build"
+
+[deploy]
+startCommand = "pnpm --filter @aivs/worker start"
