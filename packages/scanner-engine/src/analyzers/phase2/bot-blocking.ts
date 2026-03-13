@@ -6,6 +6,7 @@
  */
 
 import { request } from 'undici';
+import { BROWSER_HEADERS } from '../../http-client';
 
 export interface BotBlockingResult {
   score: number;
@@ -28,8 +29,6 @@ const BOT_USER_AGENTS: Record<string, string> = {
   Bingbot: 'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)',
 };
 
-const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-
 export async function analyzeBotBlocking(url: string): Promise<BotBlockingResult> {
   const details: Record<string, { status: number; blocked: boolean }> = {};
   const blockedBots: string[] = [];
@@ -40,7 +39,7 @@ export async function analyzeBotBlocking(url: string): Promise<BotBlockingResult
   try {
     const res = await request(url, {
       method: 'GET',
-      headers: { 'User-Agent': BROWSER_UA },
+      headers: { ...BROWSER_HEADERS },
       signal: AbortSignal.timeout(10_000),
     });
     browserStatus = res.statusCode;

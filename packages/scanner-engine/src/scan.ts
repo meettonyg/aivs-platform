@@ -4,7 +4,7 @@
  */
 
 import * as cheerio from 'cheerio';
-import { request } from './http-client';
+import { request, BROWSER_HEADERS, BROWSER_UA } from './http-client';
 import type { ScanResult, ScanOptions, SubScores, LayerScores } from '@aivs/types';
 import { getTier } from './tiers';
 import { analyzeSchema } from './analyzers/schema';
@@ -47,8 +47,6 @@ export const SCORING_WEIGHTS = {
 
 const FETCH_TIMEOUT = 15_000;
 const MAX_HTML_SIZE = 5 * 1024 * 1024; // 5 MB
-const BROWSER_UA =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 function validateUrl(url: string): URL {
   const parsed = new URL(url);
@@ -83,17 +81,34 @@ export async function scanUrl(
   const parsedUrl = validateUrl(url);
   const normalizedUrl = parsedUrl.toString();
 
-  // 2. Fetch HTML via undici
+  // 2. Fetch HTML via undici (with retry on 403 for WAF-protected sites)
   const startTime = Date.now();
-  const { statusCode, headers, body } = await request(normalizedUrl, {
-    method: 'GET',
-    headers: {
-      'User-Agent': BROWSER_UA,
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'en-US,en;q=0.5',
-    },
-    signal: AbortSignal.timeout(FETCH_TIMEOUT),
-  });
+  let statusCode: number;
+  let headers: Record<string, string | string[] | undefined>;
+  let body: import('undici').Dispatcher.ResponseData['body'];
+
+  const fetchPage = async () => {
+    return request(normalizedUrl, {
+      method: 'GET',
+      headers: { ...BROWSER_HEADERS },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT),
+    });
+  };
+
+  let res = await fetchPage();
+  statusCode = res.statusCode;
+  headers = res.headers;
+  body = res.body;
+
+  // Retry once on 403 — some WAFs pass on a second attempt with proper headers
+  if (statusCode === 403) {
+    await body.dump();
+    res = await fetchPage();
+    statusCode = res.statusCode;
+    headers = res.headers;
+    body = res.body;
+  }
+
   const ttfbMs = Date.now() - startTime;
 
   if (statusCode >= 300 && statusCode < 400) {

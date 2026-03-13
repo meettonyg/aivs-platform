@@ -8,7 +8,7 @@
  * 4. Prioritize: homepage → sitemap pages → discovered pages
  */
 
-import { request } from '../http-client';
+import { request, BROWSER_HEADERS } from '../http-client';
 
 export interface DiscoverOptions {
   maxPages: number;
@@ -190,9 +190,7 @@ function extractSitemapIndexUrls(xml: string): string[] {
 async function discoverLinksFromPage(pageUrl: string, domain: string): Promise<string[]> {
   const res = await request(pageUrl, {
     method: 'GET',
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    },
+    headers: { ...BROWSER_HEADERS },
     signal: AbortSignal.timeout(10_000),
   });
 
