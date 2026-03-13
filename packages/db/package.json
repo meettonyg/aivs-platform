@@ -7,7 +7,9 @@
   "exports": {
     ".": {
       "types": "./dist/client.d.ts",
-      "default": "./src/client.ts"
+      "import": "./dist/client.mjs",
+      "require": "./dist/client.js",
+      "default": "./dist/client.js"
     }
   },
   "scripts": {
