@@ -47,6 +47,8 @@ export const SCORING_WEIGHTS = {
 
 const FETCH_TIMEOUT = 15_000;
 const MAX_HTML_SIZE = 5 * 1024 * 1024; // 5 MB
+const BROWSER_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 function validateUrl(url: string): URL {
   const parsed = new URL(url);
@@ -86,7 +88,7 @@ export async function scanUrl(
   const { statusCode, headers, body } = await request(normalizedUrl, {
     method: 'GET',
     headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; AIVisibilityScanner/1.0)',
+      'User-Agent': BROWSER_UA,
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.5',
     },
