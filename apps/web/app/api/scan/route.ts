@@ -44,9 +44,11 @@ function withCors(request: NextRequest, response: NextResponse): NextResponse {
 }
 
 export async function POST(request: NextRequest) {
+  let inputUrl = '';
   try {
     const body = await request.json();
     const { url: rawUrl, projectId, pageType } = body;
+    inputUrl = typeof rawUrl === 'string' ? rawUrl.trim() : '';
 
     if (!rawUrl || typeof rawUrl !== 'string') {
       return withCors(request, NextResponse.json(
@@ -145,7 +147,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Scan error:', error);
     const raw = error instanceof Error ? error.message : 'Scan failed';
-    const message = humanizeError(raw, url);
+    const message = humanizeError(raw, inputUrl);
     return withCors(request, NextResponse.json(
       { success: false, error: { code: 'SCAN_FAILED', message } },
       { status: 500 },
