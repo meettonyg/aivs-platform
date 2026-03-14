@@ -3,6 +3,30 @@ import { scanUrl } from '@aivs/scanner-engine';
 import { prisma } from '@aivs/db';
 import { auth } from '@/lib/auth';
 
+/**
+ * Convert raw scanner errors into user-friendly messages.
+ */
+function humanizeError(raw: string, url: string): string {
+  const httpMatch = raw.match(/^HTTP (\d{3}) fetching /);
+  if (httpMatch) {
+    const code = Number(httpMatch[1]);
+    if (code === 403) return `This site blocked our scanner. It may use a firewall that prevents automated access.`;
+    if (code === 502 || code === 503 || code === 504)
+      return `The site (${url}) is temporarily unavailable (HTTP ${code}). Please try again in a few minutes.`;
+    if (code >= 400 && code < 500)
+      return `Could not access this page (HTTP ${code}). Please check the URL and try again.`;
+    if (code >= 500)
+      return `The site returned a server error (HTTP ${code}). Please try again later.`;
+  }
+  if (raw.includes('fetch failed') || raw.includes('ENOTFOUND') || raw.includes('ECONNREFUSED'))
+    return `Could not connect to ${url}. Please check the domain name and try again.`;
+  if (raw.includes('timed out') || raw.includes('TimeoutError'))
+    return `The request to ${url} timed out. The site may be slow or unavailable.`;
+  if (raw.includes('Non-HTML content type'))
+    return `This URL does not return an HTML page. Please enter a web page URL.`;
+  return raw;
+}
+
 function buildCorsHeaders(request: NextRequest): HeadersInit {
   const origin = request.headers.get('origin') ?? '*';
   return {
@@ -120,7 +144,8 @@ export async function POST(request: NextRequest) {
     return withCors(request, NextResponse.json({ success: true, data: { ...result, id: scan.id } }));
   } catch (error) {
     console.error('Scan error:', error);
-    const message = error instanceof Error ? error.message : 'Scan failed';
+    const raw = error instanceof Error ? error.message : 'Scan failed';
+    const message = humanizeError(raw, url);
     return withCors(request, NextResponse.json(
       { success: false, error: { code: 'SCAN_FAILED', message } },
       { status: 500 },
@@ -163,7 +188,8 @@ export async function GET(request: NextRequest) {
 
     return withCors(request, NextResponse.json({ success: true, data: { ...result, id: scan.id } }));
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Scan failed';
+    const raw = error instanceof Error ? error.message : 'Scan failed';
+    const message = humanizeError(raw, rawUrl);
     return withCors(request, NextResponse.json(
       { success: false, error: { code: 'SCAN_FAILED', message } },
       { status: 500 },

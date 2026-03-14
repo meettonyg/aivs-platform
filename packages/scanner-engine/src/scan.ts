@@ -100,15 +100,25 @@ export async function scanUrl(
   headers = res.headers;
   body = res.body;
 
-  // Retry up to 2 times on 403 — WAFs like Akamai set tracking cookies on the
-  // 403 response and expect them back.  A short delay between attempts also
-  // helps pass timing-based bot detection.
-  for (let attempt = 0; attempt < 2 && statusCode === 403; attempt++) {
-    const cookies = extractCookies(headers as Record<string, string | string[] | undefined>);
+  // Retry on retryable status codes.  Covers two scenarios:
+  //  - 403: WAFs (Akamai, Cloudflare) set tracking cookies and expect them back
+  //  - 502/503/504: CDN edge errors or WAF bot challenges that resolve on retry
+  // Cookies from every response are accumulated and sent on subsequent attempts.
+  const RETRYABLE_CODES = new Set([403, 502, 503, 504]);
+  let accumulatedCookies = '';
+  for (let attempt = 0; attempt < 3 && RETRYABLE_CODES.has(statusCode); attempt++) {
+    const newCookies = extractCookies(headers as Record<string, string | string[] | undefined>);
+    if (newCookies) {
+      accumulatedCookies = accumulatedCookies
+        ? `${accumulatedCookies}; ${newCookies}`
+        : newCookies;
+    }
     await body.dump();
-    await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+    // Backoff: 500ms, 1s, 2s for 403; 1s, 2s, 4s for 5xx
+    const delay = statusCode === 403 ? 500 * (attempt + 1) : 1000 * 2 ** attempt;
+    await new Promise((r) => setTimeout(r, delay));
     const extra: Record<string, string> = {};
-    if (cookies) extra['Cookie'] = cookies;
+    if (accumulatedCookies) extra['Cookie'] = accumulatedCookies;
     res = await fetchPage(extra);
     statusCode = res.statusCode;
     headers = res.headers;

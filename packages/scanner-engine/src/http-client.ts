@@ -13,24 +13,31 @@ const redirectAgent = new Agent().compose(
 );
 
 export const BROWSER_UA =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 /**
  * Standard browser headers that pass WAF/CDN bot detection.
  * Sites like adp.com use strict fingerprinting that rejects requests
- * missing Sec-Fetch-* and other modern browser headers.
+ * missing Sec-Fetch-*, Connection, and other modern browser headers.
+ * Keep the Chrome version up-to-date — outdated UAs are a common trigger.
  */
 export const BROWSER_HEADERS: Record<string, string> = {
   'User-Agent': BROWSER_UA,
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
   'Accept-Language': 'en-US,en;q=0.9',
-  'Accept-Encoding': 'gzip, deflate, br',
+  'Accept-Encoding': 'gzip, deflate, br, zstd',
+  'Connection': 'keep-alive',
   'Upgrade-Insecure-Requests': '1',
+  'Sec-Ch-Ua': '"Chromium";v="131", "Not_A Brand";v="24"',
+  'Sec-Ch-Ua-Mobile': '?0',
+  'Sec-Ch-Ua-Platform': '"Windows"',
   'Sec-Fetch-Dest': 'document',
   'Sec-Fetch-Mode': 'navigate',
   'Sec-Fetch-Site': 'none',
   'Sec-Fetch-User': '?1',
   'Cache-Control': 'max-age=0',
+  'DNT': '1',
+  'Priority': 'u=0, i',
 };
 
 /**
