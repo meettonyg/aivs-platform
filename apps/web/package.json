@@ -4,16 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@aivs/db": "workspace:*",
     "@aivs/scanner-engine": "workspace:*",
     "@aivs/types": "workspace:*",
     "@aivs/ui": "workspace:*",
+    "@prisma/client": "^6.19.2",
     "@auth/prisma-adapter": "^2.0.0",
     "bullmq": "^5.0.0",
     "ioredis": "^5.0.0",
@@ -31,6 +33,7 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "eslint": "^9.39.2",
+    "prisma": "^6.19.2",
     "typescript": "^5.7.0"
   },
   "prisma": {
