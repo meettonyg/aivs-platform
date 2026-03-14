@@ -15,7 +15,6 @@
     "@aivs/scanner-engine": "workspace:*",
     "@aivs/types": "workspace:*",
     "@aivs/ui": "workspace:*",
-    "@prisma/client": "^6.19.2",
     "@auth/prisma-adapter": "^2.0.0",
     "bullmq": "^5.0.0",
     "ioredis": "^5.0.0",

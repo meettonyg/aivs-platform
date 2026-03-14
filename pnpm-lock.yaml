@@ -32,9 +32,6 @@ importers:
       '@auth/prisma-adapter':
         specifier: ^2.0.0
         version: 2.11.1(@prisma/client@6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3))
-      '@prisma/client':
-        specifier: ^6.19.2
-        version: 6.19.2(prisma@6.19.2(typescript@5.9.3))(typescript@5.9.3)
       bullmq:
         specifier: ^5.0.0
         version: 5.71.0
