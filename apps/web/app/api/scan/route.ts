@@ -18,6 +18,8 @@ function humanizeError(raw: string, url: string): string {
     if (code >= 500)
       return `The site returned a server error (HTTP ${code}). Please try again later.`;
   }
+  if (raw.includes('other side closed') || raw.includes('ECONNRESET'))
+    return `The site (${url}) closed the connection unexpectedly. This usually means a firewall or bot-protection system blocked the request. Please try again.`;
   if (raw.includes('fetch failed') || raw.includes('ENOTFOUND') || raw.includes('ECONNREFUSED'))
     return `Could not connect to ${url}. Please check the domain name and try again.`;
   if (raw.includes('timed out') || raw.includes('TimeoutError'))
