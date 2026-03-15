@@ -49,8 +49,8 @@ Transform the AI Visibility Scanner from a free WordPress plugin (single-URL, 27
 | 2. Structured Data (17) | Strong — schema types + speakable | Missing HowTo, Product, Review, LocalBusiness, Event, BreadcrumbList |
 | 3. Content Structure (20) | Moderate — headings, definitions, FAQ | Missing: answer-first, statistics, lists/tables, fluency, self-containment |
 | 4. Entity Signals (10) | Moderate — density only | Missing: type quality, disambiguation, cross-page, relationship mapping |
-| 5. E-E-A-T & Trust (13) | None | No author detection, freshness, credentials, trust elements |
-| 6. Off-Site Authority (11) | None | Requires external APIs (backlinks, reviews, mentions) |
+| 5. E-E-A-T & Trust (13) | Partial — author EEAT analyzer | Missing freshness, credentials, trust elements |
+| 6. Off-Site Authority (11) | Strong — two-tier model (org+person) | 15+ signals: backlinks, KG, Wikidata, YouTube, podcast, books, academic, GitHub, patents, TMDb, social, news/GDELT, iTunes, Amazon, newsletter |
 | 7. Semantic Matching (5) | None | Requires NLP / query-level analysis |
 | 8. Platform-Specific (9) | None | Requires per-platform modeling and SERP APIs |
 | 9. Observability (8) | Full | Scanner, comparison, scoring, badges, PDF reports all built |
@@ -321,24 +321,33 @@ These require NLP analysis but can use deterministic approaches (per Scanner Des
 
 ### 3.2 Off-Site Authority Factors (~15 new factors → ~70 total)
 
-These require paid external APIs. Costs bundled into subscription pricing.
+Two-tier model: Organization-level (domain/brand) and Person-level (individual) signals scored independently.
 
-| Factor Group | Factors | API Provider | Est. Cost/1K Queries |
-|:---|:---|:---|:---|
-| Backlink Authority | 6.1 | DataForSEO or Moz Links API | $2–5 |
-| Brand Mentions / Co-Citations | 6.2 | GDELT or Mention API | $5–10 |
-| Media Coverage | 6.3 | GDELT News API | $2–3 |
-| Reviews & Sentiment | 6.4 | Google Places API + DataForSEO | $3–5 |
-| Directory/NAP Consistency | 6.5 | BrightLocal API or DataForSEO | $5–8 |
-| Knowledge Graph Presence | 4.7 | Google Knowledge Graph API | Free (limited) |
-| Wikipedia/Wikidata | 4.8 | Wikidata SPARQL | $0 (free) |
-| Entity Consistency Across Sources | 4.4 | Custom crawler + NLP | Compute only |
-| Social Profile Consistency | 6.10 | Direct scrape of known profiles | Compute only |
-| Podcast/Interview Mentions | 6.6 | Taddy API (GraphQL) | $3–5 |
-| Forum/Community Presence | 6.7 | Reddit API + custom scraping | $1–2 |
-| Academic Citations | 6.8 | Crossref API + Semantic Scholar | $0–1 |
-| "Best Of" List Mentions | 6.9 | SERP API (DataForSEO) | $2–3 |
-| Social Sentiment | 6.11 | Social listening API | $5–10 |
+| Factor Group | Factors | API Provider | Cost | Status |
+|:---|:---|:---|:---|:---|
+| Backlink Authority | 6.1 | DataForSEO | $2–5 | ✅ Implemented |
+| Brand Mentions / Co-Citations | 6.2 | GDELT DOC 2.0 API | Free | ✅ Implemented |
+| Media Coverage | 6.3 | GDELT DOC 2.0 API | Free | ✅ Implemented |
+| Reviews & Sentiment | 6.4 | Google Places API + DataForSEO | $3–5 | Planned |
+| Directory/NAP Consistency | 6.5 | BrightLocal API or DataForSEO | $5–8 | Planned |
+| Knowledge Graph Presence | 4.7 | Google Knowledge Graph API | Free | ✅ Implemented |
+| Wikipedia/Wikidata | 4.8 | Wikidata SPARQL | Free | ✅ Implemented |
+| Social Profile Consistency | 6.10 | Homepage scrape + meta tags | Free | ✅ Implemented |
+| Podcast Guest Appearances | 6.6 | Taddy API (GraphQL) | Free tier | ✅ Implemented |
+| Owned Podcast | — | Taddy API (reuse) | Free tier | ✅ Implemented |
+| YouTube Channel (brand) | — | YouTube Data API v3 | Free | ✅ Implemented |
+| Author Books | — | Open Library + Google Books | Free | ✅ Implemented |
+| Academic Citations | 6.8 | Crossref + Semantic Scholar | Free | ✅ Implemented |
+| GitHub Profile | — | GitHub REST API | Free | ✅ Implemented |
+| Patents | — | USPTO PatentsView API | Free | ✅ Implemented |
+| Screen Presence (TV/Film) | — | TMDb API | Free | ✅ Implemented |
+| iTunes/Apple Podcasts Ratings | — | iTunes Search API | Free | ✅ Implemented (enrichment) |
+| Amazon Book Enrichment | — | Amazon PAAPI v5 | Free (affiliate) | ✅ Implemented (enrichment) |
+| Newsletter | — | Manual entry | Free | ✅ Types defined |
+| Conference Speaking | — | Manual entry | Free | ✅ Types defined |
+| Forum/Community Presence | 6.7 | Reddit API + custom scraping | $1–2 | Planned |
+| "Best Of" List Mentions | 6.9 | SERP API (DataForSEO) | $2–3 | Planned |
+| Social Sentiment | 6.11 | Social listening API | $5–10 | Planned |
 
 **Cost optimization strategy:**
 - Authority factors run once per domain (not per page), cached for 30 days

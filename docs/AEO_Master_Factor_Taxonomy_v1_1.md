@@ -660,15 +660,21 @@ AI systems do not evaluate sources only from the page itself. External reputatio
 **Confidence:** Indirect / Correlated
 Backlinks remain a top-3 ranking factor. Pages with 3.8× more backlinks than positions 2–10 take the #1 spot. Since AI Overviews pull predominantly from top-ranking pages (76% overlap with top 10 for Google AI Overviews), traditional link authority feeds AI visibility indirectly.
 
+**Data Source:** DataForSEO API (org-level signal). ✅ Implemented.
+
 ## 6.2 Co-Citations and Unlinked Brand Mentions
 
 **Confidence:** Strongly Inferred
 Frequent mention by other credible sources contributes to authority without requiring a hyperlink. AI platforms track unlinked brand mentions and build authority profiles.
 
+**Data Source:** GDELT DOC 2.0 API — free, unlimited (org-level signal). ✅ Implemented.
+
 ## 6.3 Media Mentions & Press Coverage
 
 **Confidence:** Strongly Inferred
 Recognized coverage strengthens brand legitimacy and entity recognition. Each media mention enriches the entity's Knowledge Graph presence.
+
+**Data Source:** GDELT DOC 2.0 API — article search with sentiment analysis, major outlet detection (org-level signal). ✅ Implemented.
 
 ## 6.4 Third-Party Reviews & Review Sentiment
 
@@ -685,6 +691,11 @@ Essential for local identity resolution and local recommendation reliability. Co
 **Confidence:** Strongly Inferred
 Appearances on podcasts, interviews in trade publications, and being quoted as an expert create authority edges and third-party validation that AI systems can trace.
 
+**Data Sources:**
+- Guest appearances: Taddy API GraphQL — episode search with ShowAuthority-compatible identifiers (person-level signal). ✅ Implemented.
+- Owned podcasts: Taddy API — domain ownership filtering (org-level signal). ✅ Implemented.
+- iTunes/Apple Podcasts ratings: iTunes Search API — enrichment for rating data (free). ✅ Implemented.
+
 ## 6.7 Forum / Community Presence
 
 **Confidence:** Indirect / Correlated
@@ -694,6 +705,8 @@ Reddit is one of the top 5 most-cited domains across AI Overviews. Active, helpf
 
 **Confidence:** Strongly Inferred
 High-value signal in technical, scientific, and research-oriented sectors. Perplexity particularly favors academic and research sources.
+
+**Data Sources:** Semantic Scholar Author API + Crossref Works API — both free, no key (person-level signal with attribution). ✅ Implemented.
 
 ## 6.9 "Best Of" / Comparison List Mentions
 
@@ -705,10 +718,29 @@ Third-party inclusion in listicles and comparison pages reinforces category-leve
 **Confidence:** Strongly Inferred
 Consistent brand identity across LinkedIn, Twitter/X, Facebook, and industry-specific platforms helps entity validation and cross-reference confidence.
 
+**Data Source:** Homepage social link discovery + public profile meta tag scraping — free (both org and person-level signals). ✅ Implemented.
+
 ## 6.11 Social Sentiment
 
 **Confidence:** Indirect / Correlated
 LinkedIn, Instagram, and Facebook are in the top 20 domains cited by all major LLMs. Social sentiment likely matters in some contexts, but confidence is lower than for reviews or media mentions.
+
+### Additional Authority Signals (Beyond Original Taxonomy)
+
+The following signals extend the taxonomy with additional authority indicators:
+
+| Signal | Level | Data Source | Status |
+|:---|:---|:---|:---|
+| YouTube Channel | Org | YouTube Data API v3 (free) | ✅ Implemented |
+| Author Books | Person | Open Library + Google Books (free) | ✅ Implemented |
+| Amazon Book Enrichment | Person | Amazon PAAPI v5 (affiliate) | ✅ Implemented |
+| GitHub Profile | Person | GitHub REST API (free) | ✅ Implemented |
+| Patents | Person | USPTO PatentsView API (free) | ✅ Implemented |
+| Screen Presence (TV/Film) | Person | TMDb API (free) | ✅ Implemented |
+| Knowledge Graph | Org | Google KG API (free) | ✅ Implemented |
+| Wikidata | Org | Wikidata SPARQL (free) | ✅ Implemented |
+| Newsletter | Org | Manual entry | ✅ Types defined |
+| Conference Speaking | Person | Manual entry | ✅ Types defined |
 
 ---
 
