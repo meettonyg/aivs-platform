@@ -17,12 +17,18 @@ export { analyzeWikidata } from './wikidata';
 export { analyzeBacklinks } from './backlinks';
 export { analyzeYouTubeChannel, computeYouTubeAuthorityScore } from './youtube-channel';
 export { analyzeOwnedPodcast, computeOwnedPodcastAuthorityScore } from './owned-podcast';
+export { analyzeNewsMentions } from './news-mentions';
+export { analyzeOrgSocialProfiles, analyzePersonSocialProfiles, computeSocialAuthorityScore, fetchPublicProfile } from './social-media';
 
 // Person-level analyzers
 export { analyzePodcastMentions } from './podcast-mentions';
 export { analyzeAuthorBooks, computeBookAuthorityScore } from './author-books';
 export { analyzeAcademicPapers, computeAcademicAuthorityScore } from './academic-papers';
 export { analyzeGitHubProfile, computeGitHubAuthorityScore } from './github-profile';
+export { analyzePatents, computePatentAuthorityScore } from './patents';
+
+// Enrichment
+export { lookupByItunesId, searchItunes, enrichWithItunesRatings, computeItunesRatingBonus } from './itunes-lookup';
 
 // Clients (for direct use / cross-system integration)
 export { isTaddyConfigured, searchEpisodes, searchPodcasts } from './taddy-client';
@@ -65,6 +71,8 @@ export type {
   GitHubProfileCandidate,
   OwnedPodcastResult,
   OwnedPodcastCandidate,
+  PatentsResult,
+  PatentCandidate,
   BrandMentionResult,
   SocialProfileResult,
   CachedAuthorityData,
@@ -72,3 +80,5 @@ export type {
 export type { TaddyPodcastSeries, TaddyPodcastEpisode } from './taddy-client';
 export type { YouTubeChannelInfo } from './youtube-client';
 export type { AcademicPaperInfo } from './academic-client';
+export type { ItunesPodcastInfo } from './itunes-lookup';
+export type { SocialPlatform, SocialProfileInfo } from './social-media';

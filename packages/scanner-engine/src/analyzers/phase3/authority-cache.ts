@@ -48,6 +48,8 @@ export interface PersonAuthorityData {
   authorBooks: AuthorBooksResult | null;
   academicPapers: AcademicPapersResult | null;
   githubProfile: GitHubProfileResult | null;
+  patents: PatentsResult | null;
+  socialProfiles: SocialProfileResult | null;
   score: number;
 }
 
@@ -126,6 +128,31 @@ export interface OwnedPodcastCandidate {
   itunesId: number | null;
   rssUrl: string | null;
   websiteUrl: string | null;
+}
+
+// ── Batch 3 result types ─────────────────────────────────────────────
+
+export interface PatentsResult {
+  inventorName: string;
+  candidates: PatentCandidate[];
+  totalPatents: number;
+  confirmedPatents: number;
+  confirmed: AttributionRecord[];
+  score: number;
+}
+
+export interface PatentCandidate {
+  id: string;
+  patentNumber: string;
+  title: string;
+  abstract: string | null;
+  dateGranted: string | null;
+  dateApplication: string | null;
+  inventors: string[];
+  assignees: string[];
+  cpcCategories: string[];
+  citationCount: number;
+  url: string;
 }
 
 // ── Shared attribution types ─────────────────────────────────────────

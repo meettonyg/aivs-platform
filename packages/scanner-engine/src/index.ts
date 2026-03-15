@@ -53,6 +53,10 @@ export { analyzeYouTubeChannel, computeYouTubeAuthorityScore } from './analyzers
 export { analyzeAcademicPapers, computeAcademicAuthorityScore } from './analyzers/phase3/academic-papers';
 export { analyzeGitHubProfile, computeGitHubAuthorityScore } from './analyzers/phase3/github-profile';
 export { analyzeOwnedPodcast, computeOwnedPodcastAuthorityScore } from './analyzers/phase3/owned-podcast';
+export { analyzeNewsMentions } from './analyzers/phase3/news-mentions';
+export { analyzeOrgSocialProfiles, analyzePersonSocialProfiles, computeSocialAuthorityScore } from './analyzers/phase3/social-media';
+export { analyzePatents, computePatentAuthorityScore } from './analyzers/phase3/patents';
+export { lookupByItunesId, searchItunes, enrichWithItunesRatings, computeItunesRatingBonus } from './analyzers/phase3/itunes-lookup';
 export { getCachedAuthority, setCachedAuthority, clearAuthorityCache } from './analyzers/phase3/authority-cache';
 export type {
   DomainAuthorityData,
@@ -76,7 +80,13 @@ export type {
   GitHubProfileCandidate,
   OwnedPodcastResult,
   OwnedPodcastCandidate,
+  PatentsResult,
+  PatentCandidate,
+  BrandMentionResult,
+  SocialProfileResult,
 } from './analyzers/phase3/authority-cache';
+export type { ItunesPodcastInfo } from './analyzers/phase3/itunes-lookup';
+export type { SocialPlatform, SocialProfileInfo } from './analyzers/phase3/social-media';
 
 // Platform Visibility Estimates
 export { estimatePlatformVisibility } from './platform-visibility';

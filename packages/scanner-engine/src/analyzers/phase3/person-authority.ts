@@ -2,25 +2,30 @@
  * Person-level authority orchestrator.
  *
  * Runs individual signals in parallel, cached for 30 days per person per domain.
- * Signals: podcast guest appearances, author books, academic papers, GitHub profile.
+ * Signals: podcast guest appearances, author books, academic papers,
+ *          GitHub profile, patents, social profiles.
  */
 
 import { analyzePodcastMentions } from './podcast-mentions';
 import { analyzeAuthorBooks } from './author-books';
 import { analyzeAcademicPapers } from './academic-papers';
 import { analyzeGitHubProfile } from './github-profile';
+import { analyzePatents } from './patents';
+import { analyzePersonSocialProfiles } from './social-media';
 import {
   getCachedPersonAuthority,
   setCachedPersonAuthority,
   type PersonAuthorityData,
 } from './authority-cache';
 
-/** Weights for person-level signals. */
+/** Weights for person-level signals (Batch 3 rebalanced — 6 signals). */
 const PERSON_WEIGHTS: Record<string, number> = {
-  podcastMentions: 0.30,
-  authorBooks: 0.30,
-  academicPapers: 0.25,
-  githubProfile: 0.15,
+  podcastMentions: 0.22,
+  authorBooks: 0.22,
+  academicPapers: 0.18,
+  socialProfiles: 0.15,
+  githubProfile: 0.12,
+  patents: 0.11,
 };
 
 export async function analyzePersonAuthority(
@@ -28,18 +33,20 @@ export async function analyzePersonAuthority(
   personName: string,
 ): Promise<PersonAuthorityData> {
   if (!personName || personName.trim().length < 2) {
-    return { personName: '', podcastMentions: null, authorBooks: null, academicPapers: null, githubProfile: null, score: 0 };
+    return { personName: '', podcastMentions: null, authorBooks: null, academicPapers: null, githubProfile: null, patents: null, socialProfiles: null, score: 0 };
   }
 
   const name = personName.trim();
   const cached = await getCachedPersonAuthority(domain, name);
   if (cached) return cached;
 
-  const [podcastMentions, authorBooks, academicPapers, githubProfile] = await Promise.all([
+  const [podcastMentions, authorBooks, academicPapers, githubProfile, patents, socialProfiles] = await Promise.all([
     analyzePodcastMentions(domain),
     analyzeAuthorBooks(name),
     analyzeAcademicPapers(name),
     analyzeGitHubProfile(name),
+    analyzePatents(name),
+    analyzePersonSocialProfiles(name),
   ]);
 
   // Weighted average of available signals
@@ -57,6 +64,12 @@ export async function analyzePersonAuthority(
   if (githubProfile.score > 0) {
     signals.push({ score: githubProfile.score, weight: PERSON_WEIGHTS.githubProfile });
   }
+  if (patents.score > 0) {
+    signals.push({ score: patents.score, weight: PERSON_WEIGHTS.patents });
+  }
+  if (socialProfiles.score > 0) {
+    signals.push({ score: socialProfiles.score, weight: PERSON_WEIGHTS.socialProfiles });
+  }
 
   let score = 0;
   if (signals.length > 0) {
@@ -72,6 +85,8 @@ export async function analyzePersonAuthority(
     authorBooks,
     academicPapers,
     githubProfile,
+    patents,
+    socialProfiles,
     score,
   };
 
