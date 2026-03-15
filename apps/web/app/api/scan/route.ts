@@ -12,7 +12,7 @@ function humanizeError(raw: string, url: string): string {
     const code = Number(httpMatch[1]);
     if (code === 403) return `This site blocked our scanner. It may use a firewall that prevents automated access.`;
     if (code === 502 || code === 503 || code === 504)
-      return `The site (${url}) is temporarily unavailable (HTTP ${code}). Please try again in a few minutes.`;
+      return `This site's firewall or bot protection is blocking our scanner (HTTP ${code}). The site itself is likely fine, but automated access is restricted.`;
     if (code >= 400 && code < 500)
       return `Could not access this page (HTTP ${code}). Please check the URL and try again.`;
     if (code >= 500)
