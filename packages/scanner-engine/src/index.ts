@@ -56,7 +56,9 @@ export { analyzeOwnedPodcast, computeOwnedPodcastAuthorityScore } from './analyz
 export { analyzeNewsMentions } from './analyzers/phase3/news-mentions';
 export { analyzeOrgSocialProfiles, analyzePersonSocialProfiles, computeSocialAuthorityScore } from './analyzers/phase3/social-media';
 export { analyzePatents, computePatentAuthorityScore } from './analyzers/phase3/patents';
+export { analyzeScreenPresence, computeScreenPresenceScore } from './analyzers/phase3/screen-presence';
 export { lookupByItunesId, searchItunes, enrichWithItunesRatings, computeItunesRatingBonus } from './analyzers/phase3/itunes-lookup';
+export { isAmazonConfigured, enrichBooksWithAmazon, computeAmazonBookBonus } from './analyzers/phase3/amazon-client';
 export { getCachedAuthority, setCachedAuthority, clearAuthorityCache } from './analyzers/phase3/authority-cache';
 export type {
   DomainAuthorityData,
@@ -82,11 +84,16 @@ export type {
   OwnedPodcastCandidate,
   PatentsResult,
   PatentCandidate,
+  ScreenPresenceResult,
+  ScreenPresenceCandidate,
+  ConferenceSpeakingResult,
+  NewsletterResult,
   BrandMentionResult,
   SocialProfileResult,
 } from './analyzers/phase3/authority-cache';
 export type { ItunesPodcastInfo } from './analyzers/phase3/itunes-lookup';
 export type { SocialPlatform, SocialProfileInfo } from './analyzers/phase3/social-media';
+export type { AmazonBookEnrichment } from './analyzers/phase3/amazon-client';
 
 // Platform Visibility Estimates
 export { estimatePlatformVisibility } from './platform-visibility';

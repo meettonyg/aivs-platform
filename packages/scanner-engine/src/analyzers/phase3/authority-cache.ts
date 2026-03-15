@@ -37,6 +37,7 @@ export interface OrgAuthorityData {
   ownedPodcast: OwnedPodcastResult | null;
   brandMentions: BrandMentionResult | null;
   socialProfiles: SocialProfileResult | null;
+  newsletter: NewsletterResult | null;
   score: number;
 }
 
@@ -50,6 +51,8 @@ export interface PersonAuthorityData {
   githubProfile: GitHubProfileResult | null;
   patents: PatentsResult | null;
   socialProfiles: SocialProfileResult | null;
+  screenPresence: ScreenPresenceResult | null;
+  conferenceSpeaking: ConferenceSpeakingResult | null;
   score: number;
 }
 
@@ -155,6 +158,66 @@ export interface PatentCandidate {
   url: string;
 }
 
+// ── Batch 4 result types ─────────────────────────────────────────────
+
+export interface ScreenPresenceResult {
+  personName: string;
+  candidates: ScreenPresenceCandidate[];
+  totalCredits: number;
+  confirmed: AttributionRecord[];
+  score: number;
+}
+
+export interface ScreenPresenceCandidate {
+  id: string;
+  tmdbId: number;
+  name: string;
+  knownForDepartment: string | null;
+  popularity: number;
+  profileImageUrl: string | null;
+  credits: ScreenCredit[];
+  totalCredits: number;
+}
+
+export interface ScreenCredit {
+  title: string;
+  mediaType: 'movie' | 'tv';
+  character: string | null;
+  department: string | null;
+  job: string | null;
+  releaseDate: string | null;
+  popularity: number;
+  voteAverage: number;
+}
+
+export interface ConferenceSpeakingResult {
+  personName: string;
+  events: ConferenceSpeakingEvent[];
+  totalEvents: number;
+  score: number;
+}
+
+export interface ConferenceSpeakingEvent {
+  id: string;
+  eventName: string;
+  talkTitle: string | null;
+  date: string | null;
+  location: string | null;
+  isKeynote: boolean;
+  estimatedAudience: number | null;
+  url: string | null;
+}
+
+export interface NewsletterResult {
+  hasNewsletter: boolean;
+  platform: string | null; // substack, convertkit, mailchimp, beehiiv, etc.
+  subscriberCount: number | null;
+  frequency: string | null; // daily, weekly, monthly
+  isActive: boolean;
+  url: string | null;
+  score: number;
+}
+
 // ── Shared attribution types ─────────────────────────────────────────
 
 export type AttributionStatus = 'unconfirmed' | 'confirmed' | 'rejected';
@@ -166,7 +229,9 @@ export type AttributionType =
   | 'patent'
   | 'screen_credit'
   | 'owned_podcast'
-  | 'github_profile';
+  | 'github_profile'
+  | 'conference_speaking'
+  | 'newsletter';
 
 export interface AttributionRecord {
   candidateId: string;

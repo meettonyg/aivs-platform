@@ -87,6 +87,7 @@ export async function analyzeOrgAuthority(domain: string): Promise<OrgAuthorityD
     ownedPodcast,
     brandMentions,
     socialProfiles,
+    newsletter: null, // Manual entry — populated via API
     score,
   };
 
