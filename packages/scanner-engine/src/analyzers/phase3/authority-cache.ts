@@ -34,6 +34,7 @@ export interface OrgAuthorityData {
   wikidata: WikidataResult | null;
   backlinks: BacklinkResult | null;
   youtubeChannel: YouTubeChannelResult | null;
+  ownedPodcast: OwnedPodcastResult | null;
   brandMentions: BrandMentionResult | null;
   socialProfiles: SocialProfileResult | null;
   score: number;
@@ -45,7 +46,86 @@ export interface PersonAuthorityData {
   personName: string;
   podcastMentions: PodcastMentionResult | null;
   authorBooks: AuthorBooksResult | null;
+  academicPapers: AcademicPapersResult | null;
+  githubProfile: GitHubProfileResult | null;
   score: number;
+}
+
+// ── Batch 2 result types ─────────────────────────────────────────────
+
+export interface AcademicPapersResult {
+  authorName: string;
+  authorCandidates: AcademicAuthorCandidate[];
+  papers: AcademicPaperCandidate[];
+  totalPapers: number;
+  totalCitations: number;
+  hIndex: number;
+  confirmed: AttributionRecord[];
+  score: number;
+}
+
+export interface AcademicAuthorCandidate {
+  id: string;
+  name: string;
+  affiliations: string[];
+  paperCount: number;
+  citationCount: number;
+  hIndex: number;
+  source: 'semanticscholar' | 'crossref';
+  profileUrl: string | null;
+}
+
+export interface AcademicPaperCandidate {
+  id: string;
+  title: string;
+  authors: string[];
+  year: number | null;
+  citationCount: number;
+  venue: string | null;
+  doi: string | null;
+  url: string | null;
+  source: 'semanticscholar' | 'crossref';
+}
+
+export interface GitHubProfileResult {
+  candidates: GitHubProfileCandidate[];
+  confirmed: AttributionRecord[];
+  score: number;
+}
+
+export interface GitHubProfileCandidate {
+  id: string;
+  username: string;
+  name: string | null;
+  bio: string | null;
+  company: string | null;
+  blog: string | null;
+  publicRepos: number;
+  followers: number;
+  totalStars: number;
+  topRepos: { name: string; stars: number; language: string | null }[];
+  avatarUrl: string | null;
+  profileUrl: string;
+}
+
+export interface OwnedPodcastResult {
+  candidates: OwnedPodcastCandidate[];
+  confirmed: AttributionRecord[];
+  score: number;
+}
+
+export interface OwnedPodcastCandidate {
+  id: string;
+  uuid: string;
+  name: string;
+  authorName: string | null;
+  description: string | null;
+  imageUrl: string | null;
+  genres: string[];
+  totalEpisodes: number | null;
+  itunesId: number | null;
+  rssUrl: string | null;
+  websiteUrl: string | null;
 }
 
 // ── Shared attribution types ─────────────────────────────────────────

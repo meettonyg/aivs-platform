@@ -50,6 +50,9 @@ export { analyzeBacklinks } from './analyzers/phase3/backlinks';
 export { analyzePodcastMentions } from './analyzers/phase3/podcast-mentions';
 export { analyzeAuthorBooks, computeBookAuthorityScore } from './analyzers/phase3/author-books';
 export { analyzeYouTubeChannel, computeYouTubeAuthorityScore } from './analyzers/phase3/youtube-channel';
+export { analyzeAcademicPapers, computeAcademicAuthorityScore } from './analyzers/phase3/academic-papers';
+export { analyzeGitHubProfile, computeGitHubAuthorityScore } from './analyzers/phase3/github-profile';
+export { analyzeOwnedPodcast, computeOwnedPodcastAuthorityScore } from './analyzers/phase3/owned-podcast';
 export { getCachedAuthority, setCachedAuthority, clearAuthorityCache } from './analyzers/phase3/authority-cache';
 export type {
   DomainAuthorityData,
@@ -66,6 +69,13 @@ export type {
   YouTubeChannelResult,
   YouTubeChannelCandidate,
   BookCandidate,
+  AcademicPapersResult,
+  AcademicAuthorCandidate,
+  AcademicPaperCandidate,
+  GitHubProfileResult,
+  GitHubProfileCandidate,
+  OwnedPodcastResult,
+  OwnedPodcastCandidate,
 } from './analyzers/phase3/authority-cache';
 
 // Platform Visibility Estimates

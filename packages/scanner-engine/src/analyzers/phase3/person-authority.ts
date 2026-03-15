@@ -2,11 +2,13 @@
  * Person-level authority orchestrator.
  *
  * Runs individual signals in parallel, cached for 30 days per person per domain.
- * Signals: podcast guest appearances, author books.
+ * Signals: podcast guest appearances, author books, academic papers, GitHub profile.
  */
 
 import { analyzePodcastMentions } from './podcast-mentions';
 import { analyzeAuthorBooks } from './author-books';
+import { analyzeAcademicPapers } from './academic-papers';
+import { analyzeGitHubProfile } from './github-profile';
 import {
   getCachedPersonAuthority,
   setCachedPersonAuthority,
@@ -15,8 +17,10 @@ import {
 
 /** Weights for person-level signals. */
 const PERSON_WEIGHTS: Record<string, number> = {
-  podcastMentions: 0.50,
-  authorBooks: 0.50,
+  podcastMentions: 0.30,
+  authorBooks: 0.30,
+  academicPapers: 0.25,
+  githubProfile: 0.15,
 };
 
 export async function analyzePersonAuthority(
@@ -24,16 +28,18 @@ export async function analyzePersonAuthority(
   personName: string,
 ): Promise<PersonAuthorityData> {
   if (!personName || personName.trim().length < 2) {
-    return { personName: '', podcastMentions: null, authorBooks: null, score: 0 };
+    return { personName: '', podcastMentions: null, authorBooks: null, academicPapers: null, githubProfile: null, score: 0 };
   }
 
   const name = personName.trim();
   const cached = await getCachedPersonAuthority(domain, name);
   if (cached) return cached;
 
-  const [podcastMentions, authorBooks] = await Promise.all([
+  const [podcastMentions, authorBooks, academicPapers, githubProfile] = await Promise.all([
     analyzePodcastMentions(domain),
     analyzeAuthorBooks(name),
+    analyzeAcademicPapers(name),
+    analyzeGitHubProfile(name),
   ]);
 
   // Weighted average of available signals
@@ -44,6 +50,12 @@ export async function analyzePersonAuthority(
   }
   if (authorBooks.score > 0) {
     signals.push({ score: authorBooks.score, weight: PERSON_WEIGHTS.authorBooks });
+  }
+  if (academicPapers.score > 0) {
+    signals.push({ score: academicPapers.score, weight: PERSON_WEIGHTS.academicPapers });
+  }
+  if (githubProfile.score > 0) {
+    signals.push({ score: githubProfile.score, weight: PERSON_WEIGHTS.githubProfile });
   }
 
   let score = 0;
@@ -58,6 +70,8 @@ export async function analyzePersonAuthority(
     personName: name,
     podcastMentions,
     authorBooks,
+    academicPapers,
+    githubProfile,
     score,
   };
 

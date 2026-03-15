@@ -9,6 +9,7 @@ import { analyzeKnowledgeGraph } from './knowledge-graph';
 import { analyzeWikidata } from './wikidata';
 import { analyzeBacklinks } from './backlinks';
 import { analyzeYouTubeChannel } from './youtube-channel';
+import { analyzeOwnedPodcast } from './owned-podcast';
 import {
   getCachedOrgAuthority,
   setCachedOrgAuthority,
@@ -17,10 +18,11 @@ import {
 
 /** Weights for org-level signals. */
 const ORG_WEIGHTS: Record<string, number> = {
-  backlinks: 0.40,
-  knowledgeGraph: 0.22,
-  youtubeChannel: 0.18,
-  wikidata: 0.20,
+  backlinks: 0.32,
+  knowledgeGraph: 0.18,
+  youtubeChannel: 0.16,
+  wikidata: 0.16,
+  ownedPodcast: 0.18,
 };
 
 export async function analyzeOrgAuthority(domain: string): Promise<OrgAuthorityData> {
@@ -29,11 +31,12 @@ export async function analyzeOrgAuthority(domain: string): Promise<OrgAuthorityD
 
   const cleanDomain = domain.replace(/^www\./, '');
 
-  const [knowledgeGraph, wikidata, backlinks, youtubeChannel] = await Promise.all([
+  const [knowledgeGraph, wikidata, backlinks, youtubeChannel, ownedPodcast] = await Promise.all([
     analyzeKnowledgeGraph(cleanDomain),
     analyzeWikidata(cleanDomain),
     analyzeBacklinks(cleanDomain),
     analyzeYouTubeChannel(cleanDomain),
+    analyzeOwnedPodcast(cleanDomain),
   ]);
 
   // Weighted average of available signals
@@ -51,6 +54,9 @@ export async function analyzeOrgAuthority(domain: string): Promise<OrgAuthorityD
   if (youtubeChannel.score > 0) {
     signals.push({ score: youtubeChannel.score, weight: ORG_WEIGHTS.youtubeChannel });
   }
+  if (ownedPodcast.score > 0) {
+    signals.push({ score: ownedPodcast.score, weight: ORG_WEIGHTS.ownedPodcast });
+  }
 
   let score = 0;
   if (signals.length > 0) {
@@ -65,6 +71,7 @@ export async function analyzeOrgAuthority(domain: string): Promise<OrgAuthorityD
     wikidata,
     backlinks,
     youtubeChannel,
+    ownedPodcast,
     brandMentions: null,   // Batch 3: GDELT
     socialProfiles: null,  // Batch 3: social media
     score,
