@@ -1,8 +1,9 @@
 /**
- * Crawl access analyzer — robots.txt, SSR detection, TTFB, canonical tags.
- * Ported from aivs_analyze_crawl_access() in scanner-engine.php.
+ * Crawl access analyzer — robots.txt, SSR detection, TTFB, canonical tags,
+ * JS dependency, interactive content, llms-full.json.
  *
  * Category 1 in the AEO taxonomy.
+ * Factors: 1.1, 1.4, 1.5, 1.6, 1.7, 1.8, 1.11, 1.12, 1.17
  */
 
 import type { CheerioAPI } from 'cheerio';
@@ -20,6 +21,14 @@ export interface CrawlAccessResult {
   robotsTxt: RobotsTxtResult | null;
   ttfbMs: number | null;
   isSpa: boolean;
+  // 1.4 JS Rendering Dependency
+  jsRenderingDependency: 'none' | 'partial' | 'heavy';
+  heavyJsFrameworks: string[];
+  // 1.5 Content Behind Interactive Elements
+  hasContentBehindInteraction: boolean;
+  interactiveElementCount: number;
+  // 1.17 llms-full.json
+  hasLlmsFullJson: boolean;
 }
 
 export interface RobotsTxtResult {
@@ -72,6 +81,55 @@ export function analyzeCrawlAccess(
     robotsTxtResult = parseRobotsTxt(robotsTxt);
   }
 
+  // 1.4 JS rendering dependency detection
+  const scripts = $('script[src]');
+  const heavyJsFrameworks: string[] = [];
+  const frameworkPatterns: [RegExp, string][] = [
+    [/react/i, 'React'],
+    [/angular/i, 'Angular'],
+    [/vue/i, 'Vue'],
+    [/next/i, 'Next.js'],
+    [/nuxt/i, 'Nuxt'],
+    [/svelte/i, 'Svelte'],
+    [/ember/i, 'Ember'],
+  ];
+  scripts.each((_, el) => {
+    const src = $(el).attr('src') ?? '';
+    for (const [pattern, name] of frameworkPatterns) {
+      if (pattern.test(src) && !heavyJsFrameworks.includes(name)) {
+        heavyJsFrameworks.push(name);
+      }
+    }
+  });
+
+  let jsRenderingDependency: 'none' | 'partial' | 'heavy' = 'none';
+  if (isSpa) {
+    jsRenderingDependency = 'heavy';
+  } else if (heavyJsFrameworks.length > 0) {
+    // Framework detected but content is present — likely SSR with hydration
+    jsRenderingDependency = bodyText.length > 500 ? 'partial' : 'heavy';
+  }
+
+  // 1.5 Content behind interactive elements (tabs, accordions, modals)
+  const interactiveSelectors = [
+    '[data-toggle]', '[data-bs-toggle]', '.accordion', '.tab-pane',
+    '[role="tabpanel"]', '.collapse', '.modal', '[aria-hidden="true"]',
+    'details:not([open])', '.expandable', '[class*="accordion"]',
+    '[class*="collapsible"]', '[class*="dropdown-content"]',
+  ];
+  const interactiveElements = $(interactiveSelectors.join(', '));
+  const interactiveElementCount = interactiveElements.length;
+  const hasContentBehindInteraction = interactiveElementCount > 3;
+
+  // 1.17 llms-full.json detection (from robots.txt or link tag)
+  let hasLlmsFullJson = false;
+  if (robotsTxt && robotsTxt.includes('llms-full.json')) {
+    hasLlmsFullJson = true;
+  }
+  if ($('link[rel="llms-full"]').length > 0 || $('link[href*="llms-full.json"]').length > 0) {
+    hasLlmsFullJson = true;
+  }
+
   let score = 0;
 
   if (isHttps) score += 15;
@@ -89,10 +147,21 @@ export function analyzeCrawlAccess(
   }
 
   if (ttfbMs !== undefined && ttfbMs !== null) {
-    if (ttfbMs < 200) score += 10;
-    else if (ttfbMs < 500) score += 7;
-    else if (ttfbMs < 1000) score += 3;
+    if (ttfbMs < 200) score += 8;
+    else if (ttfbMs < 500) score += 5;
+    else if (ttfbMs < 1000) score += 2;
   }
+
+  // 1.4 JS rendering penalty
+  if (jsRenderingDependency === 'none') score += 5;
+  else if (jsRenderingDependency === 'partial') score += 2;
+  // 'heavy' = 0
+
+  // 1.5 Content behind interaction penalty
+  if (!hasContentBehindInteraction) score += 4;
+
+  // 1.17 llms-full.json bonus
+  if (hasLlmsFullJson) score += 3;
 
   return {
     score: Math.min(100, score),
@@ -107,6 +176,11 @@ export function analyzeCrawlAccess(
     robotsTxt: robotsTxtResult,
     ttfbMs: ttfbMs ?? null,
     isSpa,
+    jsRenderingDependency,
+    heavyJsFrameworks,
+    hasContentBehindInteraction,
+    interactiveElementCount,
+    hasLlmsFullJson,
   };
 }
 
