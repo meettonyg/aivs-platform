@@ -45,14 +45,14 @@ Transform the AI Visibility Scanner from a free WordPress plugin (single-URL, 27
 
 | Category | Current Coverage | Gap |
 |:---|:---|:---|
-| 1. Crawlability & Access (18) | Partial — feeds/sitemap only | No robots.txt check, no WAF detection, no JS dependency check |
-| 2. Structured Data (17) | Strong — schema types + speakable | Missing HowTo, Product, Review, LocalBusiness, Event, BreadcrumbList |
-| 3. Content Structure (20) | Moderate — headings, definitions, FAQ | Missing: answer-first, statistics, lists/tables, fluency, self-containment |
-| 4. Entity Signals (10) | Moderate — density only | Missing: type quality, disambiguation, cross-page, relationship mapping |
-| 5. E-E-A-T & Trust (13) | Partial — author EEAT analyzer | Missing freshness, credentials, trust elements |
+| 1. Crawlability & Access (18) | Strong — robots.txt, WAF, HTTPS, TTFB, canonical, SPA, JS dependency, llms-full.json | Remaining: mobile accessibility, crawl budget, markdown export |
+| 2. Structured Data (17) | Strong — all major types detected + accuracy validation | HowTo, Product, Review, LocalBusiness, Event, BreadcrumbList all detected. Missing: feed architecture |
+| 3. Content Structure (20) | Strong — front-loaded answers, concise blocks, FAQ, lists, tables, stats, fluff, fact density, self-containment | Remaining: fluency (NLP), structured depth, search intent |
+| 4. Entity Signals (10) | Moderate — density + KG + Wikidata | Missing: type quality, disambiguation, cross-page, relationship mapping |
+| 5. E-E-A-T & Trust (13) | Strong — 10 factors: author, bio, credentials, author page, experience, expertise, trust pages, citations, original research, freshness | Remaining: factual accuracy (LLM), information gain (LLM), YMYL (Phase 5) |
 | 6. Off-Site Authority (11) | Strong — two-tier model (org+person) | 15+ signals: backlinks, KG, Wikidata, YouTube, podcast, books, academic, GitHub, patents, TMDb, social, news/GDELT, iTunes, Amazon, newsletter |
-| 7. Semantic Matching (5) | None | Requires NLP / query-level analysis |
-| 8. Platform-Specific (9) | None | Requires per-platform modeling and SERP APIs |
+| 7. Semantic Matching (5) | Partial — conversational alignment, topical depth (Phase 4 deep scan) | Remaining: topic clusters, local relevance, intent class |
+| 8. Platform-Specific (9) | Integrated — platform visibility estimates in scan results | 6 platforms: Google AIO, ChatGPT, Perplexity, Gemini, Voice, Copilot |
 | 9. Observability (8) | Full | Scanner, comparison, scoring, badges, PDF reports all built |
 
 ---
