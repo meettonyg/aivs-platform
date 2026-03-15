@@ -116,9 +116,67 @@ model Project {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   scans        Scan[]
   crawlJobs    CrawlJob[]
+  people       ProjectPerson[]
+  attributions Attribution[]
+  socialAccounts SocialAccount[]
 
   @@unique([organizationId, domain])
   @@map("projects")
+}
+
+// ──────────────────────────────────────
+// Authority — People, Attributions, Social
+// ──────────────────────────────────────
+
+model ProjectPerson {
+  id        String   @id @default(cuid())
+  projectId String   @map("project_id")
+  name      String
+  role      String?  // CEO, CTO, Author, etc.
+  createdAt DateTime @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, name])
+  @@map("project_people")
+}
+
+model Attribution {
+  id           String   @id @default(cuid())
+  projectId    String   @map("project_id")
+  domain       String
+  personName   String?  @map("person_name") // null = org-level attribution
+  candidateId  String   @map("candidate_id")
+  type         String   // book, podcast_episode, youtube_channel, academic_paper, patent, screen_credit, owned_podcast, github_profile
+  status       String   // confirmed, rejected
+  title        String
+  subtitle     String?
+  attributedAt DateTime @default(now()) @map("attributed_at")
+  attributedBy String   @map("attributed_by")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, candidateId])
+  @@map("attributions")
+}
+
+model SocialAccount {
+  id           String    @id @default(cuid())
+  projectId    String    @map("project_id")
+  personName   String?   @map("person_name") // null = org-level account
+  platform     String    // linkedin, twitter, instagram, tiktok, facebook, pinterest, youtube
+  handle       String
+  profileUrl   String    @map("profile_url")
+  accessToken  String?   @map("access_token") @db.Text  // OAuth, encrypted at rest
+  refreshToken String?   @map("refresh_token") @db.Text // OAuth, encrypted at rest
+  followers    Int?
+  lastFetched  DateTime? @map("last_fetched")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, platform, handle])
+  @@map("social_accounts")
 }
 
 model Scan {

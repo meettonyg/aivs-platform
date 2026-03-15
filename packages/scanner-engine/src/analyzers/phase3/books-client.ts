@@ -7,26 +7,7 @@
  */
 
 import { request } from 'undici';
-
-// ── Types ────────────────────────────────────────────────────────────
-
-export interface BookCandidate {
-  /** Stable identifier for attribution confirmation. */
-  id: string;
-  title: string;
-  authors: string[];
-  publisher: string | null;
-  publishedDate: string | null;
-  isbn: string | null;
-  pageCount: number | null;
-  description: string | null;
-  coverImageUrl: string | null;
-  subjects: string[];
-  /** Which API returned this result. */
-  source: 'openlibrary' | 'googlebooks';
-  /** Raw source URL for the user to verify. */
-  infoUrl: string | null;
-}
+import type { BookCandidate } from './authority-cache';
 
 export interface OpenLibraryAuthor {
   key: string;

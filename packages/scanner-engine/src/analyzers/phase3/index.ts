@@ -1,29 +1,64 @@
 /**
  * Phase 3 analyzers — off-site authority signals.
+ *
+ * Two-tier model:
+ *   - Org authority: domain/brand signals
+ *   - Person authority: individual signals
  */
 
+// Orchestrators
 export { analyzeDomainAuthority } from './domain-authority';
+export { analyzeOrgAuthority } from './org-authority';
+export { analyzePersonAuthority } from './person-authority';
+
+// Individual analyzers
 export { analyzeKnowledgeGraph } from './knowledge-graph';
 export { analyzeWikidata } from './wikidata';
 export { analyzeBacklinks } from './backlinks';
 export { analyzePodcastMentions } from './podcast-mentions';
+export { analyzeAuthorBooks, computeBookAuthorityScore } from './author-books';
+export { analyzeYouTubeChannel, computeYouTubeAuthorityScore } from './youtube-channel';
+
+// Clients (for direct use / cross-system integration)
 export {
   isTaddyConfigured,
   searchEpisodes,
   searchPodcasts,
 } from './taddy-client';
 export {
+  isYouTubeConfigured,
+  searchChannels,
+  getChannelsByIds,
+} from './youtube-client';
+
+// Cache
+export {
   getCachedAuthority,
   setCachedAuthority,
+  getCachedOrgAuthority,
+  setCachedOrgAuthority,
+  getCachedPersonAuthority,
+  setCachedPersonAuthority,
   clearAuthorityCache,
 } from './authority-cache';
+
+// Types
 export type {
   DomainAuthorityData,
+  OrgAuthorityData,
+  PersonAuthorityData,
+  AttributionRecord,
+  AttributionStatus,
+  AttributionType,
   KnowledgeGraphResult,
   WikidataResult,
   BacklinkResult,
   PodcastMentionResult,
   PodcastAppearance,
+  AuthorBooksResult,
+  BookCandidate,
+  YouTubeChannelResult,
+  YouTubeChannelCandidate,
   BrandMentionResult,
   SocialProfileResult,
   CachedAuthorityData,
@@ -32,3 +67,6 @@ export type {
   TaddyPodcastSeries,
   TaddyPodcastEpisode,
 } from './taddy-client';
+export type {
+  YouTubeChannelInfo,
+} from './youtube-client';

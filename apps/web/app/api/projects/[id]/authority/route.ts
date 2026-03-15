@@ -4,10 +4,11 @@ import { auth } from '@/lib/auth';
 import { analyzeDomainAuthority, clearAuthorityCache } from '@aivs/scanner-engine';
 
 /**
- * GET /api/projects/[id]/authority — Get domain authority data
+ * GET /api/projects/[id]/authority — Get domain authority data (org + people)
  * POST /api/projects/[id]/authority — Force refresh authority data
  *
  * Pro+ only. Results cached for 30 days per domain.
+ * Returns two-tier model: org authority + individual person authority.
  */
 export async function GET(
   _request: NextRequest,
@@ -27,7 +28,10 @@ export async function GET(
 
     const project = await prisma.project.findUnique({
       where: { id },
-      include: { organization: { include: { members: true } } },
+      include: {
+        organization: { include: { members: true } },
+        people: true,
+      },
     });
 
     if (!project || !project.organization.members.some((m) => m.userId === userId)) {
@@ -45,12 +49,20 @@ export async function GET(
       );
     }
 
-    const authorityData = await analyzeDomainAuthority(project.domain);
+    const personNames = project.people.map((p) => p.name);
+    const authorityData = await analyzeDomainAuthority(project.domain, personNames);
+
+    // Merge persisted attributions into results
+    const attributions = await prisma.attribution.findMany({
+      where: { projectId: id },
+    });
 
     return NextResponse.json({
       success: true,
       data: {
         domain: project.domain,
+        people: project.people,
+        attributions,
         ...authorityData,
       },
     });
@@ -81,7 +93,10 @@ export async function POST(
 
     const project = await prisma.project.findUnique({
       where: { id },
-      include: { organization: { include: { members: true } } },
+      include: {
+        organization: { include: { members: true } },
+        people: true,
+      },
     });
 
     if (!project || !project.organization.members.some((m) => m.userId === userId)) {
@@ -92,8 +107,9 @@ export async function POST(
     }
 
     // Clear cache and re-fetch
-    clearAuthorityCache(project.domain);
-    const authorityData = await analyzeDomainAuthority(project.domain);
+    await clearAuthorityCache(project.domain);
+    const personNames = project.people.map((p) => p.name);
+    const authorityData = await analyzeDomainAuthority(project.domain, personNames);
 
     return NextResponse.json({
       success: true,

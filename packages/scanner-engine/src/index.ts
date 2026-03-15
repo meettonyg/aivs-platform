@@ -40,17 +40,32 @@ export type { AuthorEeatResult } from './analyzers/phase2/author-eeat';
 export { analyzeContentQuality } from './analyzers/phase2/content-quality';
 export type { ContentQualityResult } from './analyzers/phase2/content-quality';
 
-// Phase 3 Analyzers — Off-site Authority
+// Phase 3 Analyzers — Off-site Authority (Two-Tier)
 export { analyzeDomainAuthority } from './analyzers/phase3/domain-authority';
+export { analyzeOrgAuthority } from './analyzers/phase3/org-authority';
+export { analyzePersonAuthority } from './analyzers/phase3/person-authority';
 export { analyzeKnowledgeGraph } from './analyzers/phase3/knowledge-graph';
 export { analyzeWikidata } from './analyzers/phase3/wikidata';
 export { analyzeBacklinks } from './analyzers/phase3/backlinks';
+export { analyzePodcastMentions } from './analyzers/phase3/podcast-mentions';
+export { analyzeAuthorBooks, computeBookAuthorityScore } from './analyzers/phase3/author-books';
+export { analyzeYouTubeChannel, computeYouTubeAuthorityScore } from './analyzers/phase3/youtube-channel';
 export { getCachedAuthority, setCachedAuthority, clearAuthorityCache } from './analyzers/phase3/authority-cache';
 export type {
   DomainAuthorityData,
+  OrgAuthorityData,
+  PersonAuthorityData,
+  AttributionRecord,
+  AttributionStatus,
+  AttributionType,
   KnowledgeGraphResult,
   WikidataResult,
   BacklinkResult,
+  PodcastMentionResult,
+  AuthorBooksResult,
+  YouTubeChannelResult,
+  YouTubeChannelCandidate,
+  BookCandidate,
 } from './analyzers/phase3/authority-cache';
 
 // Platform Visibility Estimates

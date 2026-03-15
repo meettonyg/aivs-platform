@@ -1,71 +1,59 @@
 /**
- * Domain authority orchestrator — runs all off-site authority analyzers.
+ * Domain authority orchestrator — backward-compatible wrapper.
+ *
+ * Delegates to the two-tier orchestrators (org + person) and combines
+ * results into the legacy DomainAuthorityData shape.
  *
  * Runs once per domain (not per page), cached for 30 days.
  * Only available on Pro+ tiers.
  */
 
-import { analyzeKnowledgeGraph } from './knowledge-graph';
-import { analyzeWikidata } from './wikidata';
-import { analyzeBacklinks } from './backlinks';
-import { analyzePodcastMentions } from './podcast-mentions';
+import { analyzeOrgAuthority } from './org-authority';
+import { analyzePersonAuthority } from './person-authority';
 import {
   getCachedAuthority,
   setCachedAuthority,
   type DomainAuthorityData,
 } from './authority-cache';
 
-export async function analyzeDomainAuthority(domain: string): Promise<DomainAuthorityData> {
-  // Check cache first
+/**
+ * Analyze full domain authority (org + people).
+ *
+ * @param domain - The domain to analyze
+ * @param people - Optional list of person names to analyze individually.
+ *                 If omitted, only org-level authority is returned.
+ */
+export async function analyzeDomainAuthority(
+  domain: string,
+  people?: string[],
+): Promise<DomainAuthorityData> {
+  // Check legacy cache first
   const cached = await getCachedAuthority(domain);
   if (cached) return cached;
 
-  const cleanDomain = domain.replace(/^www\./, '');
+  // Run org authority
+  const org = await analyzeOrgAuthority(domain);
 
-  // Run all authority analyzers in parallel
-  const [knowledgeGraph, wikidata, backlinks, podcastMentions] = await Promise.all([
-    analyzeKnowledgeGraph(cleanDomain),
-    analyzeWikidata(cleanDomain),
-    analyzeBacklinks(cleanDomain),
-    analyzePodcastMentions(cleanDomain),
-  ]);
+  // Run person authority for each individual in parallel
+  const personResults = await Promise.all(
+    (people ?? []).map((name) => analyzePersonAuthority(domain, name)),
+  );
 
-  // Compute overall authority score (weighted average of available signals)
-  const signals: { score: number; weight: number }[] = [];
+  // Overall score: org score (primary), boosted by best person score if available
+  const bestPersonScore = personResults.length > 0
+    ? Math.max(...personResults.map((p) => p.score))
+    : 0;
 
-  if (knowledgeGraph.found || knowledgeGraph.score > 0) {
-    signals.push({ score: knowledgeGraph.score, weight: 0.22 });
-  }
-  if (wikidata.found || wikidata.score > 0) {
-    signals.push({ score: wikidata.score, weight: 0.18 });
-  }
-  if (backlinks.score > 0) {
-    signals.push({ score: backlinks.score, weight: 0.45 });
-  }
-  if (podcastMentions.score > 0) {
-    signals.push({ score: podcastMentions.score, weight: 0.15 });
-  }
-
-  let overallAuthorityScore = 0;
-  if (signals.length > 0) {
-    const totalWeight = signals.reduce((s, sig) => s + sig.weight, 0);
-    overallAuthorityScore = Math.round(
-      signals.reduce((s, sig) => s + sig.score * (sig.weight / totalWeight), 0),
-    );
-  }
+  const overallAuthorityScore = bestPersonScore > 0
+    ? Math.round(org.score * 0.7 + bestPersonScore * 0.3)
+    : org.score;
 
   const result: DomainAuthorityData = {
-    knowledgeGraph,
-    wikidata,
-    backlinks,
-    podcastMentions,
-    brandMentions: null, // Future: wire to GDELT or Mention API
-    socialProfiles: null, // Future: wire to social profile scraper
+    org,
+    people: personResults,
     overallAuthorityScore,
   };
 
-  // Cache the result
   await setCachedAuthority(domain, result);
-
   return result;
 }

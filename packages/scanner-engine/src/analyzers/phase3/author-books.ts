@@ -20,48 +20,12 @@ import {
   searchOpenLibraryAuthors,
   getOpenLibraryWorks,
   searchGoogleBooks,
-  type BookCandidate,
 } from './books-client';
-
-// ── Attribution types (shared with podcast mentions) ─────────────────
-
-export type AttributionStatus = 'unconfirmed' | 'confirmed' | 'rejected';
-
-export interface AttributionRecord {
-  /** Stable ID from the source (e.g. "gb:abc123", "ol:/works/OL123W", "taddy:uuid"). */
-  candidateId: string;
-  /** What type of authority evidence this is. */
-  type: 'book' | 'podcast_episode';
-  /** User's attribution decision. */
-  status: AttributionStatus;
-  /** Title for display. */
-  title: string;
-  /** Additional context for display (publisher, show name, etc.). */
-  subtitle: string | null;
-  /** When the user made their attribution decision. */
-  attributedAt: string | null;
-  /** User ID who made the attribution (for audit). */
-  attributedBy: string | null;
-}
-
-// ── Result types ─────────────────────────────────────────────────────
-
-export interface AuthorBooksResult {
-  /** Author name searched. */
-  authorName: string;
-  /** All candidates found across APIs (for user disambiguation). */
-  candidates: BookCandidate[];
-  /** Deduplicated candidate count. */
-  totalFound: number;
-  /**
-   * Score based on confirmed attributions only.
-   * Returns 0 until the user has confirmed at least one book.
-   * Recalculated by computeBookAuthorityScore() after attribution.
-   */
-  score: number;
-  /** Confirmed attributions (populated after user action). */
-  confirmed: AttributionRecord[];
-}
+import type {
+  AttributionRecord,
+  AuthorBooksResult,
+  BookCandidate,
+} from './authority-cache';
 
 // ── Main analyzer ────────────────────────────────────────────────────
 
