@@ -12,11 +12,30 @@ const redirectAgent = new Agent().compose(
   interceptors.redirect({ maxRedirections: 5 }),
 );
 
+/**
+ * Honest bot UA — identifies the scanner transparently.
+ * Many WAFs treat identified bots more leniently than requests that
+ * pretend to be a browser but fail TLS/JS fingerprint checks.
+ */
+export const BOT_UA =
+  'Mozilla/5.0 (compatible; AIVisibilityScanner/1.0; +https://aivisibilityscanner.com)';
+
 export const BROWSER_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 /**
- * Standard browser headers that pass WAF/CDN bot detection.
+ * Minimal headers for the honest-bot strategy (tried first).
+ * Keeps the request simple and transparent — no browser mimicry.
+ */
+export const BOT_HEADERS: Record<string, string> = {
+  'User-Agent': BOT_UA,
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.5',
+  'Accept-Encoding': 'gzip, deflate, br',
+};
+
+/**
+ * Full browser-mimicry headers (used as fallback).
  * Sites like adp.com use strict fingerprinting that rejects requests
  * missing Sec-Fetch-*, Connection, and other modern browser headers.
  * Keep the Chrome version up-to-date — outdated UAs are a common trigger.

@@ -4,7 +4,7 @@
  */
 
 import * as cheerio from 'cheerio';
-import { request, BROWSER_HEADERS, BROWSER_UA, extractCookies } from './http-client';
+import { request, BOT_HEADERS, BROWSER_HEADERS, extractCookies } from './http-client';
 import type { ScanResult, ScanOptions, SubScores, LayerScores } from '@aivs/types';
 import { getTier } from './tiers';
 import { analyzeSchema } from './analyzers/schema';
@@ -81,48 +81,69 @@ export async function scanUrl(
   const parsedUrl = validateUrl(url);
   const normalizedUrl = parsedUrl.toString();
 
-  // 2. Fetch HTML via undici (with retry on 403 for WAF-protected sites)
+  // 2. Fetch HTML — two-phase strategy:
+  //    Phase A: Honest bot UA (transparent, works for most sites)
+  //    Phase B: Browser-mimicry fallback (for sites that block all bots)
   const startTime = Date.now();
   let statusCode: number;
   let headers: Record<string, string | string[] | undefined>;
   let body: import('undici').Dispatcher.ResponseData['body'];
 
-  const fetchPage = async (extraHeaders?: Record<string, string>) => {
+  const BLOCKED_CODES = new Set([403, 502, 503, 504]);
+
+  const fetchPage = async (
+    baseHeaders: Record<string, string>,
+    extraHeaders?: Record<string, string>,
+  ) => {
     return request(normalizedUrl, {
       method: 'GET',
-      headers: { ...BROWSER_HEADERS, ...extraHeaders },
+      headers: { ...baseHeaders, ...extraHeaders },
       signal: AbortSignal.timeout(FETCH_TIMEOUT),
     });
   };
 
-  let res = await fetchPage();
-  statusCode = res.statusCode;
-  headers = res.headers;
-  body = res.body;
-
-  // Retry on retryable status codes.  Covers two scenarios:
-  //  - 403: WAFs (Akamai, Cloudflare) set tracking cookies and expect them back
-  //  - 502/503/504: CDN edge errors or WAF bot challenges that resolve on retry
-  // Cookies from every response are accumulated and sent on subsequent attempts.
-  const RETRYABLE_CODES = new Set([403, 502, 503, 504]);
-  let accumulatedCookies = '';
-  for (let attempt = 0; attempt < 3 && RETRYABLE_CODES.has(statusCode); attempt++) {
-    const newCookies = extractCookies(headers as Record<string, string | string[] | undefined>);
-    if (newCookies) {
-      accumulatedCookies = accumulatedCookies
-        ? `${accumulatedCookies}; ${newCookies}`
-        : newCookies;
-    }
-    await body.dump();
-    // Backoff: 500ms, 1s, 2s for 403; 1s, 2s, 4s for 5xx
-    const delay = statusCode === 403 ? 500 * (attempt + 1) : 1000 * 2 ** attempt;
-    await new Promise((r) => setTimeout(r, delay));
-    const extra: Record<string, string> = {};
-    if (accumulatedCookies) extra['Cookie'] = accumulatedCookies;
-    res = await fetchPage(extra);
+  // Phase A: Try with honest bot UA first
+  let res: Awaited<ReturnType<typeof fetchPage>>;
+  try {
+    res = await fetchPage(BOT_HEADERS);
     statusCode = res.statusCode;
     headers = res.headers;
     body = res.body;
+  } catch {
+    // Connection-level failure (e.g. "other side closed") — skip to Phase B
+    statusCode = 0;
+    headers = {};
+    body = undefined!;
+  }
+
+  // Phase B: If bot UA was blocked, fall back to browser-mimicry with retries
+  if (BLOCKED_CODES.has(statusCode) || statusCode === 0) {
+    if (body) await body.dump();
+
+    res = await fetchPage(BROWSER_HEADERS);
+    statusCode = res.statusCode;
+    headers = res.headers;
+    body = res.body;
+
+    // Retry with cookie accumulation for WAFs that require tracking cookies
+    let accumulatedCookies = '';
+    for (let attempt = 0; attempt < 3 && BLOCKED_CODES.has(statusCode); attempt++) {
+      const newCookies = extractCookies(headers as Record<string, string | string[] | undefined>);
+      if (newCookies) {
+        accumulatedCookies = accumulatedCookies
+          ? `${accumulatedCookies}; ${newCookies}`
+          : newCookies;
+      }
+      await body.dump();
+      const delay = statusCode === 403 ? 500 * (attempt + 1) : 1000 * 2 ** attempt;
+      await new Promise((r) => setTimeout(r, delay));
+      const extra: Record<string, string> = {};
+      if (accumulatedCookies) extra['Cookie'] = accumulatedCookies;
+      res = await fetchPage(BROWSER_HEADERS, extra);
+      statusCode = res.statusCode;
+      headers = res.headers;
+      body = res.body;
+    }
   }
 
   const ttfbMs = Date.now() - startTime;
