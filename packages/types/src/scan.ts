@@ -27,6 +27,14 @@ export interface SubScores {
   schemaAccuracy: number;
   authorEeat: number;
   contentQuality: number;
+  // Phase 4 sub-scores (deep scan only)
+  hallucinationRisk?: number;
+  informationGain?: number;
+  topicalDepth?: number;
+  conversationalAlignment?: number;
+  // Phase 5 sub-scores
+  ymylSensitivity?: number;
+  indexNow?: number;
 }
 
 export interface LayerScores {
@@ -36,6 +44,8 @@ export interface LayerScores {
   understanding: number;
   /** Layer 3: Content Extractability */
   extractability: number;
+  /** Layer 4: Trust & Intelligence (Phase 4/5) */
+  trust?: number;
 }
 
 
@@ -86,6 +96,8 @@ export interface ScanResult {
   robotsData: Record<string, unknown>;
   /** Detected page type */
   pageType: string;
+  /** Platform-specific visibility estimates (Category 8) */
+  platformVisibility?: import('./platform-visibility').PlatformVisibilityResult;
   /** Scan timestamp */
   scannedAt: string;
   /** 12-char MD5 hash identifier */
