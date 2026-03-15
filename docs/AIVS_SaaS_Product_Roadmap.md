@@ -334,7 +334,7 @@ These require paid external APIs. Costs bundled into subscription pricing.
 | Wikipedia/Wikidata | 4.8 | Wikidata SPARQL | $0 (free) |
 | Entity Consistency Across Sources | 4.4 | Custom crawler + NLP | Compute only |
 | Social Profile Consistency | 6.10 | Direct scrape of known profiles | Compute only |
-| Podcast/Interview Mentions | 6.6 | Listen Notes API | $3–5 |
+| Podcast/Interview Mentions | 6.6 | Taddy API (GraphQL) | $3–5 |
 | Forum/Community Presence | 6.7 | Reddit API + custom scraping | $1–2 |
 | Academic Citations | 6.8 | Crossref API + Semantic Scholar | $0–1 |
 | "Best Of" List Mentions | 6.9 | SERP API (DataForSEO) | $2–3 |
@@ -615,7 +615,7 @@ Based on the taxonomy's GTM notes (see `AEO_Master_Factor_Taxonomy_v1_1.md`, sec
 | 4.3 | Entity Disambiguation | NLP + KG API | MEDIUM | Medium |
 | 5.8 | Factual Accuracy | LLM Analysis | HIGH | Medium |
 | 5.11 | Information Gain | Vector DB + LLM | HIGH | High |
-| 6.6 | Podcast/Interview Mentions | Audio Search API | LOW | Medium |
+| 6.6 | Podcast/Interview Mentions | Taddy API (GraphQL) | LOW | Medium |
 | 6.7 | Forum/Community Presence | Community API | MEDIUM | Medium |
 | 6.8 | Academic Citations | Academic API | MEDIUM | Low |
 | 6.9 | "Best Of" List Mentions | SERP API | LOW | Low |

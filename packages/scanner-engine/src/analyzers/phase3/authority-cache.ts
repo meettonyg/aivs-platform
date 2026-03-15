@@ -16,9 +16,32 @@ export interface DomainAuthorityData {
   knowledgeGraph: KnowledgeGraphResult | null;
   wikidata: WikidataResult | null;
   backlinks: BacklinkResult | null;
+  podcastMentions: PodcastMentionResult | null;
   brandMentions: BrandMentionResult | null;
   socialProfiles: SocialProfileResult | null;
   overallAuthorityScore: number;
+}
+
+export interface PodcastMentionResult {
+  episodeCount: number;
+  uniqueShows: number;
+  appearances: PodcastAppearance[];
+  score: number;
+}
+
+export interface PodcastAppearance {
+  episodeUuid: string;
+  episodeTitle: string;
+  datePublished: string | null;
+  duration: number | null;
+  show: {
+    uuid: string;
+    name: string;
+    itunesId: number | null;
+    rssUrl: string | null;
+    imageUrl: string | null;
+    genres: string[];
+  };
 }
 
 export interface KnowledgeGraphResult {

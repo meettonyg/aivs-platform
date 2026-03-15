@@ -8,6 +8,7 @@
 import { analyzeKnowledgeGraph } from './knowledge-graph';
 import { analyzeWikidata } from './wikidata';
 import { analyzeBacklinks } from './backlinks';
+import { analyzePodcastMentions } from './podcast-mentions';
 import {
   getCachedAuthority,
   setCachedAuthority,
@@ -22,23 +23,27 @@ export async function analyzeDomainAuthority(domain: string): Promise<DomainAuth
   const cleanDomain = domain.replace(/^www\./, '');
 
   // Run all authority analyzers in parallel
-  const [knowledgeGraph, wikidata, backlinks] = await Promise.all([
+  const [knowledgeGraph, wikidata, backlinks, podcastMentions] = await Promise.all([
     analyzeKnowledgeGraph(cleanDomain),
     analyzeWikidata(cleanDomain),
     analyzeBacklinks(cleanDomain),
+    analyzePodcastMentions(cleanDomain),
   ]);
 
   // Compute overall authority score (weighted average of available signals)
   const signals: { score: number; weight: number }[] = [];
 
   if (knowledgeGraph.found || knowledgeGraph.score > 0) {
-    signals.push({ score: knowledgeGraph.score, weight: 0.25 });
+    signals.push({ score: knowledgeGraph.score, weight: 0.22 });
   }
   if (wikidata.found || wikidata.score > 0) {
-    signals.push({ score: wikidata.score, weight: 0.20 });
+    signals.push({ score: wikidata.score, weight: 0.18 });
   }
   if (backlinks.score > 0) {
-    signals.push({ score: backlinks.score, weight: 0.55 });
+    signals.push({ score: backlinks.score, weight: 0.45 });
+  }
+  if (podcastMentions.score > 0) {
+    signals.push({ score: podcastMentions.score, weight: 0.15 });
   }
 
   let overallAuthorityScore = 0;
@@ -53,6 +58,7 @@ export async function analyzeDomainAuthority(domain: string): Promise<DomainAuth
     knowledgeGraph,
     wikidata,
     backlinks,
+    podcastMentions,
     brandMentions: null, // Future: wire to GDELT or Mention API
     socialProfiles: null, // Future: wire to social profile scraper
     overallAuthorityScore,

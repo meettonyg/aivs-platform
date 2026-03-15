@@ -191,7 +191,7 @@ These engineering guardrails govern how taxonomy factors are translated into sca
 
 4. **Page-level first, site-level second** — v1 measures single-page signals. v2 introduces site-wide crawl signals. v3 adds external authority. Don't jump ahead.
 
-5. **No hypothetical APIs** — Only plan around APIs that are publicly available and stable. Use Ahrefs, DataForSEO, Google NLP, Crossref, Listen Notes, GDELT as realistic options.
+5. **No hypothetical APIs** — Only plan around APIs that are publicly available and stable. Use Ahrefs, DataForSEO, Google NLP, Crossref, Taddy, GDELT as realistic options.
 
 6. **Scanner vs. Authority Graph** — On-page structural signals belong in the scanner. Off-site reputation signals belong in an authority graph product (v3/enterprise). Don't mix them.
 
