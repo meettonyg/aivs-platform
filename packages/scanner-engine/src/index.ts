@@ -121,6 +121,10 @@ export { analyzeCrossPageEntities } from './analyzers/phase5/cross-page-entities
 export type { CrossPageEntityResult } from './analyzers/phase5/cross-page-entities';
 export { analyzeYmylSensitivity } from './analyzers/phase5/ymyl-sensitivity';
 export type { YmylResult } from './analyzers/phase5/ymyl-sensitivity';
+export { analyzeLocalRelevance } from './analyzers/phase5/local-relevance';
+export type { LocalRelevanceResult } from './analyzers/phase5/local-relevance';
+export { analyzeIntentClass } from './analyzers/phase5/intent-class';
+export type { IntentClassResult, IntentClass } from './analyzers/phase5/intent-class';
 
 // Crawl utilities
 export { discoverPages } from './crawl/discover';

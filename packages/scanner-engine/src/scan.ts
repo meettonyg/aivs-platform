@@ -32,6 +32,8 @@ import { analyzeConversationalAlignment } from './analyzers/phase4/conversationa
 // Phase 5 — Experimental
 import { analyzeIndexNow } from './analyzers/phase5/indexnow';
 import { analyzeYmylSensitivity } from './analyzers/phase5/ymyl-sensitivity';
+import { analyzeLocalRelevance } from './analyzers/phase5/local-relevance';
+import { analyzeIntentClass } from './analyzers/phase5/intent-class';
 // Platform visibility estimates
 import { estimatePlatformVisibility } from './platform-visibility';
 import { generateFixes } from './fixes';
@@ -69,6 +71,8 @@ export const SCORING_WEIGHTS: Record<string, number> = {
   conversationalAlignment: 0.03,
   // Phase 5
   ymylSensitivity: 0.02,
+  localRelevance: 0.02,
+  intentClass: 0.02,
   indexNow: 0.01,
 };
 
@@ -227,6 +231,8 @@ export async function scanUrl(
 
   // Phase 5 analyzers (lightweight, always run)
   const ymylResult = analyzeYmylSensitivity($, normalizedUrl);
+  const localRelevanceResult = analyzeLocalRelevance($);
+  const intentClassResult = analyzeIntentClass($, normalizedUrl);
   let indexNowScore = 0;
   try {
     const indexNowResult = await analyzeIndexNow(parsedUrl.hostname);
@@ -278,6 +284,8 @@ export async function scanUrl(
     conversationalAlignment: conversationalAlignmentScore,
     // Phase 5
     ymylSensitivity: ymylResult.score,
+    localRelevance: localRelevanceResult.score,
+    intentClass: intentClassResult.score,
     indexNow: indexNowScore,
   };
 
@@ -369,6 +377,17 @@ export async function scanUrl(
       entityDensity: entityResult.entityDensity,
       entityCount: entityResult.entityCount,
       hasAuthor: entityResult.hasAuthorEntity,
+      hasOrg: entityResult.hasOrgEntity,
+      // 4.2 Entity Type Quality
+      typedEntities: entityResult.typedEntities,
+      entityTypeVariety: entityResult.entityTypeVariety,
+      // 4.3 Entity Disambiguation
+      hasSameAsLinks: entityResult.hasSameAsLinks,
+      hasWikipediaLinks: entityResult.hasWikipediaLinks,
+      disambiguationScore: entityResult.disambiguationScore,
+      // 4.10 Brand Entity Signals
+      brandConsistency: entityResult.brandConsistency,
+      brandName: entityResult.brandName,
     },
     crawlAccess: {
       isHttps: crawlAccessResult.isHttps,
@@ -381,6 +400,10 @@ export async function scanUrl(
       hasContentBehindInteraction: crawlAccessResult.hasContentBehindInteraction,
       interactiveElementCount: crawlAccessResult.interactiveElementCount,
       hasLlmsFullJson: crawlAccessResult.hasLlmsFullJson,
+      hasMobileViewport: crawlAccessResult.hasMobileViewport,
+      hasResponsiveDesign: crawlAccessResult.hasResponsiveDesign,
+      hasCleanExport: crawlAccessResult.hasCleanExport,
+      cleanExportFormats: crawlAccessResult.cleanExportFormats,
     },
     contentRichness: {
       hasStatistics: contentRichnessResult.hasStatistics,
@@ -429,6 +452,19 @@ export async function scanUrl(
       score: ymylResult.score,
       isYmyl: ymylResult.isYmyl,
       ymylCategory: ymylResult.ymylCategory,
+    },
+    localRelevance: {
+      isLocalContent: localRelevanceResult.isLocalContent,
+      hasLocalBusinessSchema: localRelevanceResult.hasLocalBusinessSchema,
+      hasGeoMeta: localRelevanceResult.hasGeoMeta,
+      hasNapData: localRelevanceResult.hasNapData,
+      localSignals: localRelevanceResult.localSignals,
+    },
+    intentClass: {
+      detectedIntent: intentClassResult.detectedIntent,
+      intentConfidence: intentClassResult.intentConfidence,
+      structureAlignment: intentClassResult.structureAlignment,
+      intentSignals: intentClassResult.intentSignals,
     },
     indexNow: {
       score: indexNowScore,

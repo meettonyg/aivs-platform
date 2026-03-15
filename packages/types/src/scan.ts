@@ -34,6 +34,8 @@ export interface SubScores {
   conversationalAlignment?: number;
   // Phase 5 sub-scores
   ymylSensitivity?: number;
+  localRelevance?: number;
+  intentClass?: number;
   indexNow?: number;
 }
 

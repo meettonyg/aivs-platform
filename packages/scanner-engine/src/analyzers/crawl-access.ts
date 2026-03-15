@@ -29,6 +29,12 @@ export interface CrawlAccessResult {
   interactiveElementCount: number;
   // 1.17 llms-full.json
   hasLlmsFullJson: boolean;
+  // 1.9 Mobile Accessibility
+  hasMobileViewport: boolean;
+  hasResponsiveDesign: boolean;
+  // 1.18 Markdown / Clean Export
+  hasCleanExport: boolean;
+  cleanExportFormats: string[];
 }
 
 export interface RobotsTxtResult {
@@ -130,6 +136,33 @@ export function analyzeCrawlAccess(
     hasLlmsFullJson = true;
   }
 
+  // 1.9 Mobile accessibility
+  const viewportMeta = $('meta[name="viewport"]').attr('content') ?? '';
+  const hasMobileViewport = viewportMeta.includes('width=device-width');
+  const hasResponsiveDesign = hasMobileViewport || (
+    $('link[media*="max-width"], link[media*="min-width"], style').text().includes('@media')
+  );
+
+  // 1.18 Markdown / Clean export versions
+  const cleanExportFormats: string[] = [];
+  // Check link tags for alternate formats
+  $('link[rel="alternate"]').each((_, el) => {
+    const type = $(el).attr('type') ?? '';
+    const href = $(el).attr('href') ?? '';
+    if (type.includes('markdown') || href.endsWith('.md')) cleanExportFormats.push('markdown');
+    if (type.includes('text/plain') || href.endsWith('.txt')) cleanExportFormats.push('text');
+    if (type === 'application/pdf' || href.endsWith('.pdf')) cleanExportFormats.push('pdf');
+  });
+  // Check for API/export endpoints in page
+  if ($('a[href*="/api/"], a[href*="format=json"], a[href*="format=md"]').length > 0) {
+    cleanExportFormats.push('api');
+  }
+  // llms.txt counts as clean export
+  if ($('link[href*="llms.txt"]').length > 0 || (robotsTxt && robotsTxt.includes('llms.txt'))) {
+    cleanExportFormats.push('llms-txt');
+  }
+  const hasCleanExport = cleanExportFormats.length > 0;
+
   let score = 0;
 
   if (isHttps) score += 15;
@@ -163,6 +196,13 @@ export function analyzeCrawlAccess(
   // 1.17 llms-full.json bonus
   if (hasLlmsFullJson) score += 3;
 
+  // 1.9 Mobile accessibility
+  if (hasMobileViewport) score += 3;
+  if (hasResponsiveDesign) score += 2;
+
+  // 1.18 Markdown / Clean export
+  if (hasCleanExport) score += 2;
+
   return {
     score: Math.min(100, score),
     hasCanonical,
@@ -181,6 +221,10 @@ export function analyzeCrawlAccess(
     hasContentBehindInteraction,
     interactiveElementCount,
     hasLlmsFullJson,
+    hasMobileViewport,
+    hasResponsiveDesign,
+    hasCleanExport,
+    cleanExportFormats: [...new Set(cleanExportFormats)],
   };
 }
 
